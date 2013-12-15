@@ -1,0 +1,16 @@
+bin/*
+*.log
+
+#These should be built or downloaded locally
+lib/annotations.jar
+lib/commons-codec-1.7
+lib/commons-configuration-1.9
+lib/commons-lang-2.6
+lib/commons-logging-1.1.1
+lib/commons-io-2.4
+lib/json-smart-1.1.1.jar
+lib/log4j-1.2.14.jar
+lib/jsr305.jar
+lib/mail.jar
+lib/mysql-connector-java-5.1.7-bin.jar
+

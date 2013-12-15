@@ -1,0 +1,46 @@
+Version 0.0.6
+(Dec. 14, 2013)
+	* Switched to a stand-alone repository
+
+Version 0.0.5
+(Mar. 9, 2013)
+
+New features and enhancements:
+	* Added support for isQuittable in Quittable interface
+
+Version 0.0.4
+(Feb. 15, 2013)
+
+New features and enhancements:
+	* Upgraded database utilities to work with JVM 1.7
+
+
+Version 0.0.3
+(Feb. 14, 2013)
+
+New features and enhancements:
+	* Added toString functions to the following 
+		* MapComparable
+		* ListComparable 
+
+
+
+Version 0.0.2
+(Feb. 14, 2013)
+
+New features and enhancements:
+	* Made the following public and Serializable 
+		* MapComparable
+		* ListComparable 
+
+
+Version 0.0.1
+(Feb. 14, 2013)
+
+First check-in with copyright
+
+New features and enhancements:
+	* Added datastructures for
+		* MapComparable
+		* ListComparable 
+	* Licensed the code under GPL v3
