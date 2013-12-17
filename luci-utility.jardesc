@@ -10,7 +10,7 @@
             <packagesToUnSeal/>
         </sealing>
     </manifest>
-    <selectedElements exportClassFiles="true" exportJavaFiles="false" exportOutputFolder="false">
+    <selectedElements exportClassFiles="true" exportJavaFiles="true" exportOutputFolder="false">
         <file path="/luci-utility/luci-utility.log4j.properties"/>
         <folder path="/luci-utility/test"/>
         <file path="/luci-utility/.classpath"/>
