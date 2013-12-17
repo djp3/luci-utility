@@ -52,7 +52,7 @@ public class Fetch {
         urlPoolLock = new Object();
     }*/
 	
-	Fetch(){
+	public Fetch(){
 		urlPool = new TreeSet<Pair<Long,String>>();
 	}
 	
@@ -60,7 +60,7 @@ public class Fetch {
 	 * 
 	 * @param server, something like "https://foo.com"
 	 */
-	Fetch(String server){
+	public Fetch(String server){
 		this();
 		TreeMap<String, Long> mapper = new TreeMap<String,Long>();
 		mapper.put(server,0L);
@@ -224,7 +224,6 @@ public class Fetch {
 	 *
 	 * @throws IOException 
 	 * @throws MalformedURLException 
-	 * @throws JSONException 
 	 */
 	
 	public JSONObject fetchJSONObject(String path, boolean authenticate, Map<String, String> vars, int timeOutMilliSecs) throws  MalformedURLException, IOException 

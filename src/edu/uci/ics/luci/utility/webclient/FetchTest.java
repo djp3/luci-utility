@@ -109,7 +109,7 @@ public class FetchTest {
 	public void testFetch(){
 		Fetch f = new Fetch("https://raw.github.com");
 		try {
-			JSONObject j = f.fetchJSONObject("/djp3/p2p4java/production/rendezvousNodeMasterList.json",false,null,30000);
+			JSONObject j = f.fetchJSONObject("/djp3/p2p4java/production/bootstrapMasterList.json",false,null,30000);
 			JSONArray ja = (JSONArray) j.get("rendezvous_nodes");
 			String s = (String) ja.get(0);
 			assertTrue(s.contains("tcp"));
@@ -133,7 +133,7 @@ public class FetchTest {
 		urlMap.put("https://raw.github.com",4L);
 		Fetch f = new Fetch(urlMap);
 		try {
-			JSONObject j = f.fetchJSONObject("/djp3/p2p4java/production/rendezvousNodeMasterList.json",false,null,30000);
+			JSONObject j = f.fetchJSONObject("/djp3/p2p4java/production/bootstrapMasterList.json",false,null,30000);
 			JSONArray ja = (JSONArray) j.get("rendezvous_nodes");
 			String s = (String) ja.get(0);
 			assertTrue(s.contains("tcp"));
@@ -158,7 +158,7 @@ public class FetchTest {
 		urlMap.put("https://github.com",4L);
 		Fetch f = new Fetch(urlMap);
 		try {
-			String s = f.fetchWebPage("/djp3/p2p4java/blob/production/rendezvousNodeMasterList.json",false,null,30000);
+			String s = f.fetchWebPage("/djp3/p2p4java/blob/production/bootstrapMasterList.json",false,null,30000);
 			assertTrue(s.contains("tcp"));
 		} catch (MalformedURLException e) {
 			fail(""+e);
