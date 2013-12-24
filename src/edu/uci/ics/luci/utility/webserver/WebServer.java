@@ -26,6 +26,7 @@ import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.GeneralSecurityException;
+import java.security.InvalidParameterException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -39,7 +40,6 @@ import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.X509KeyManager;
 
 import org.apache.log4j.Logger;
-
 
 import edu.uci.ics.luci.utility.CalendarCache;
 import edu.uci.ics.luci.utility.Globals;
@@ -161,6 +161,12 @@ public class WebServer implements Runnable,Quittable{
 	}
 
 	public WebServer(RequestDispatcher requestDispatcher,int port,boolean secure,AccessControl accessControl){
+		if(requestDispatcher == null){
+			throw new InvalidParameterException("The Request Dispatcher can't be null");
+		}
+		if(accessControl == null){
+			throw new InvalidParameterException("The Access Control can't be null");
+		}
 		
 		this.requestDispatcher = requestDispatcher;
 		this.requestDispatcher.setWebServer(this);

@@ -73,7 +73,7 @@ public class WebUtil {
 			Method m = input.getClass().getMethod("flush");
 			m.invoke(input);
 		} catch (NoSuchMethodException e) {
-			getLog().log(Level.DEBUG,"",e);
+			getLog().log(Level.DEBUG,"No Such Method Exception: flush");
 		} catch (IllegalAccessException e) {
 			getLog().log(Level.ERROR,"",e);
 		} catch (InvocationTargetException e) {
