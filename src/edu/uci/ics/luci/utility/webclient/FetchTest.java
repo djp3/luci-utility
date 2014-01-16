@@ -25,12 +25,14 @@ import edu.uci.ics.luci.utility.datastructure.Pair;
 
 public class FetchTest {
 
+	/*
 	private static int testPort = 9020;
 	private static synchronized int testPortPlusPlus(){
 		int x = testPort;
 		testPort++;
 		return(x);
 	}
+	*/
 
 
 	@BeforeClass
@@ -52,7 +54,7 @@ public class FetchTest {
 	}
 	
 
-	private int workingPort;
+	//private int workingPort;
 
 	@Before
 	public void setUp() throws Exception {
