@@ -14,6 +14,8 @@ Including:
 * a Pair implementation
 * a lightweight web server with some basic plug-ins for handling common functions of web servers
 
+To run the JUnit tests successfully you need a mysql server running on the local machine
+
 You may contact the copyright holders of these Java Utilities using the information below:
 
 University of California, Irvine c/o
