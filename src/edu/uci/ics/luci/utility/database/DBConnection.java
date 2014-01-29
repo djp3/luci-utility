@@ -346,6 +346,7 @@ public class DBConnection implements Connection{
 	}
 
 	/*
+	 * Needed in Java 1.7
 	public void setSchema(String schema) throws SQLException {
 		conn.setSchema(schema);
 	}

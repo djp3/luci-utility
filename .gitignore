@@ -1,5 +1,9 @@
 bin/*
 *.log
+luci-utility.jar
+
+#This should be developer specific, no?
+*.classpath
 
 #These should be built or downloaded locally
 lib/annotations.jar
