@@ -231,12 +231,17 @@ public class WebServer implements Runnable,Quittable{
 	}
 	
 	public void start(){
+		start(1000);
+	}
+	
+	
+	public void start(long wait){
 		getWebServer().start();
 		
 		if(Globals.getGlobals().isTesting()){
-			getLog().info("Sleeping 1 seconds so everything can stabilize for testing");
+			getLog().info("Sleeping "+(wait/1000.0)+" seconds so everything can stabilize for testing");
 			try {
-				Thread.sleep(1000);
+				Thread.sleep(wait);
 			} catch (InterruptedException e) {
 			}
 			getLog().info("Done Sleeping");

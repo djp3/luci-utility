@@ -1,6 +1,6 @@
 /*
 	Copyright 2007-2013
-		University of California, Irvine (c/o Donald J. Patterson)
+	University of California, Irvine (c/o Donald J. Patterson)
 */
 /*
 	This file is part of the Laboratory for Ubiquitous Computing java Utility package, i.e. "Utilities"

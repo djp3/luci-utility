@@ -437,9 +437,17 @@ public class RequestDispatcher implements Runnable{
 				header = "";
 			}
 			else{
-				request = new String(readBytes, 0, nBytes);
-				requestParameters = new String(readBytes, 0, nBytes);
-				header = new String(readBytes,0,nBytes);
+				while(nBytes != -1){
+					request += new String(readBytes, 0, nBytes);
+					if(bis.available() > 0){
+						nBytes = bis.read(readBytes,0,5120);
+					}
+					else{
+						nBytes = -1;
+					}
+				}
+				requestParameters = new String(request);
+				header = new String(request);
 			}
 				
 			getLog().debug("First Part of Full Client Request = \n" + request);

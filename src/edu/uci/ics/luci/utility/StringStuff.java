@@ -4,18 +4,24 @@ import java.util.List;
 
 public class StringStuff {
 	public static String join(String delimiter, List<String> strings) {
-		String joinedString = "";
+		StringBuffer joinedString = new StringBuffer();
 		for (String s : strings){
-			joinedString += s + delimiter;
+			joinedString.append(s);
+			joinedString.append(delimiter);
 		}
-		return joinedString.substring(0, joinedString.length() - delimiter.length());
+		joinedString.delete(joinedString.length()-delimiter.length(), joinedString.length());
+		return joinedString.toString();
 	}
 	
 	public static String repeatString(String s, int numberOfRepeats) {
-		String repeatString = "";
-		for (int i=0; i<numberOfRepeats; ++i){
-			repeatString += s;
+		Integer foo=null;
+		if(foo==null){
+			foo = 1;
 		}
-		return repeatString;
+		StringBuffer repeatString = new StringBuffer();
+		for (int i=0; i<numberOfRepeats; ++i){
+			repeatString.append(s);
+		}
+		return repeatString.toString();
 	}
 }
