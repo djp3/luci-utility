@@ -19,8 +19,9 @@
         <file path="/luci-utility/README.md"/>
         <file path="/luci-utility/luci-utility.jardesc"/>
         <javaElement handleIdentifier="=luci-utility/src"/>
+        <file path="/luci-utility/luci-utility.log4j.xml"/>
         <file path="/luci-utility/CHANGES"/>
-        <file path="/luci-utility/luci.log"/>
+        <file path="/luci-utility/pom.xml"/>
         <file path="/luci-utility/VERSION"/>
         <file path="/luci-utility/.project"/>
         <folder path="/luci-utility/lib"/>
