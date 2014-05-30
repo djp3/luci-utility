@@ -6,6 +6,7 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="src" path="src_test"/>
 	<classpathentry kind="lib" path="lib/commons-codec-1.7/commons-codec-1.7.jar"/>
 	<classpathentry kind="lib" path="lib/annotations.jar"/>
 	<classpathentry kind="lib" path="lib/commons-logging-1.1.1/commons-logging-1.1.1-sources.jar"/>

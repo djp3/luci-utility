@@ -28,10 +28,8 @@ import java.util.TimeZone;
 
 public class CalendarCache {
 	public transient static final TimeZone TZ_LosAngeles = TimeZone.getTimeZone("America/Los_Angeles");
-	public transient static final Calendar C_LosAngeles = Calendar.getInstance(TZ_LosAngeles);
 	
 	public transient static final TimeZone TZ_GMT = TimeZone.getTimeZone("GMT");
-	public transient static final Calendar C_GMT = Calendar.getInstance(TZ_GMT);
 	
 	private transient static String defaultTimeZoneS = TZ_LosAngeles.getID();
 	private transient static TimeZone defaultTimeZoneTZ = TZ_LosAngeles;

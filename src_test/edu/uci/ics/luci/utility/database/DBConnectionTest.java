@@ -75,6 +75,7 @@ public class DBConnectionTest {
 		if(odbcp != null){
 			odbcp.shutdown();
 		}
+		Globals.setGlobals(null);
 	}
 	
 	private static void incrementCount() {

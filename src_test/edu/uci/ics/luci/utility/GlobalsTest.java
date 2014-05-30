@@ -51,6 +51,7 @@ public class GlobalsTest extends Globals {
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
+		Globals.setGlobals(null);
 	}
 
 	@Before

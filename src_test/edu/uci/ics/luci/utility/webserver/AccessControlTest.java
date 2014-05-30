@@ -73,6 +73,7 @@ public class AccessControlTest extends AccessControl{
 
 	@After
 	public void tearDown() throws Exception {
+		Globals.setGlobals(null);
 	}
 
 	@Test
