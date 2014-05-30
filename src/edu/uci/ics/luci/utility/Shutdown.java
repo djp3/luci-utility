@@ -1,5 +1,5 @@
 /*
-	Copyright 2007-2013
+	Copyright 2007-2014
 		University of California, Irvine (c/o Donald J. Patterson)
 */
 /*
@@ -24,7 +24,8 @@ package edu.uci.ics.luci.utility;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class Shutdown extends Thread{
 	
@@ -33,7 +34,7 @@ public class Shutdown extends Thread{
 	private static transient volatile Logger log = null;
 	public static Logger getLog(){
 		if(log == null){
-			log = Logger.getLogger(Shutdown.class);
+			log = LogManager.getLogger(Shutdown.class);
 		}
 		return log;
 	}
@@ -43,6 +44,8 @@ public class Shutdown extends Thread{
 		super();
 		this.q = new ArrayList<Quittable>();
 		this.q.addAll(q);
+		this.setName("Shutdown Thread");
+		this.setDaemon(false);	//Force a clean shutdown
 	}
 	
 	public void add(Quittable q){
@@ -50,13 +53,15 @@ public class Shutdown extends Thread{
 	}
 
 	public void run() {
-		getLog().debug("MyShutdown shutting down (probably from signal)");
+		getLog().debug("MyShutdown shutting down");
 		if(q != null){
 			for(Quittable x: q){
 				if(x != null){
 					synchronized(x){
-						x.setQuitting(true);
-						x.notifyAll();
+						if(!x.isQuitting()){
+							x.setQuitting(true);
+							x.notifyAll();
+						}
 					}
 				}
 			}

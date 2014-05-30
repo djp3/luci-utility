@@ -1,5 +1,5 @@
 /*
-	Copyright 2007-2013
+	Copyright 2007-2014
 		University of California, Irvine (c/o Donald J. Patterson)
 */
 /*
@@ -39,7 +39,8 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.X509KeyManager;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import edu.uci.ics.luci.utility.CalendarCache;
 import edu.uci.ics.luci.utility.Globals;
@@ -60,7 +61,7 @@ public class WebServer implements Runnable,Quittable{
 	private static transient volatile Logger log = null;
 	public static Logger getLog(){
 		if(log == null){
-			log = Logger.getLogger(WebServer.class);
+			log = LogManager.getLogger(WebServer.class);
 		}
 		return log;
 	}

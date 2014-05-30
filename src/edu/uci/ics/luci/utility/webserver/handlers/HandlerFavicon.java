@@ -1,5 +1,5 @@
 /*
-	Copyright 2007-2013
+	Copyright 2007-2014
 		University of California, Irvine (c/o Donald J. Patterson)
 */
 /*
@@ -24,8 +24,8 @@ package edu.uci.ics.luci.utility.webserver.handlers;
 import java.net.InetAddress;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import edu.uci.ics.luci.utility.datastructure.Pair;
 import edu.uci.ics.luci.utility.webserver.HandlerAbstract;
@@ -36,7 +36,7 @@ public class HandlerFavicon extends HandlerAbstract {
 	private static transient volatile Logger log = null;
 	public static Logger getLog(){
 		if(log == null){
-			log = Logger.getLogger(HandlerFavicon.class);
+			log = LogManager.getLogger(HandlerFavicon.class);
 		}
 		return log;
 	}

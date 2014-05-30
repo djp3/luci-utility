@@ -1,5 +1,5 @@
 /*
-	Copyright 2007-2013
+	Copyright 2007-2014
 		University of California, Irvine (c/o Donald J. Patterson)
 */
 /*
@@ -80,10 +80,16 @@ public class GlobalsTest extends Globals {
 		setTesting(false);
 		assertEquals(false, isTesting());
 		
+		TestQuittable x = new TestQuittable();
+		Globals.getGlobals().addQuittable(x);
+		assertTrue(!x.isQuitting());
+		
 		setQuitting(false);
 		assertEquals(false,isQuitting());
 		setQuitting(true);
 		assertEquals(true,isQuitting());
+		
+		assertTrue(x.isQuitting());
 	}
 	
 	public GlobalsTest(){
@@ -93,6 +99,20 @@ public class GlobalsTest extends Globals {
 	protected GlobalsTest(boolean testing){
 		super();
 		setTesting(true);
+	}
+	
+	private class TestQuittable implements Quittable{
+
+		private boolean quitting = false;
+
+		public void setQuitting(boolean quitting) {
+			this.quitting = quitting;
+		}
+
+		public boolean isQuitting() {
+			return this.quitting;
+		}
+		
 	}
 
 }

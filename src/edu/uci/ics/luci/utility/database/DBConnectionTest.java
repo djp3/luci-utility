@@ -1,5 +1,5 @@
 /*
-	Copyright 2007-2013
+	Copyright 2007-2014
 		University of California, Irvine (c/o Donald J. Patterson)
 */
 /*
@@ -32,7 +32,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -53,7 +54,7 @@ public class DBConnectionTest {
 	private transient volatile Logger log = null;
 	public Logger getLog(){
 		if(log == null){
-			log = Logger.getLogger(DBConnectionTest.class);
+			log = LogManager.getLogger(DBConnectionTest.class);
 		}
 		return log;
 	}

@@ -1,5 +1,5 @@
 /*
-	Copyright 2007-2013
+	Copyright 2007-2014
 		University of California, Irvine (c/o Donald J. Patterson)
 */
 /*
@@ -24,7 +24,8 @@ package edu.uci.ics.luci.utility.webserver;
 import java.net.InetAddress;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import edu.uci.ics.luci.utility.datastructure.Pair;
 import edu.uci.ics.luci.utility.webserver.RequestDispatcher.HTTPRequest;
@@ -35,13 +36,13 @@ public abstract class HandlerAbstract {
 	private static transient volatile Logger log = null;
 	public static Logger getLog(){
 		if(log == null){
-			log = Logger.getLogger(HandlerAbstract.class);
+			log = LogManager.getLogger(HandlerAbstract.class);
 		}
 		return log;
 	}
 	
 	public static byte[] getContentTypeHeader_JSON(){
-		return "Content-type:  application/json; charset=UTF-8".getBytes();
+		return "Access-Control-Allow_Origin:true\nContent-type:  application/json; charset=UTF-8".getBytes();
 	}
 
 	public static byte[] getContentTypeHeader_HTML(){
@@ -126,6 +127,7 @@ public abstract class HandlerAbstract {
 	        return "";
 	    }
 	}
+	
 
 
 }

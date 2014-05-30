@@ -1,5 +1,5 @@
 /*
-	Copyright 2007-2013
+	Copyright 2007-2014
 	University of California, Irvine (c/o Donald J. Patterson)
 */
 /*
@@ -21,16 +21,13 @@
 
 package edu.uci.ics.luci.utility;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
 
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 
 public abstract class Globals implements Quittable{
@@ -38,14 +35,26 @@ public abstract class Globals implements Quittable{
 	private static transient volatile Logger log = null;
 	public static Logger getLog(){
 		if(log == null){
-			log = Logger.getLogger(Globals.class);
+			log = LogManager.getLogger(Globals.class);
 		}
 		return log;
 	}
 	
-	static protected Globals _globals = null;
-	private static final String propertyFileNameDefault = "luci-utility.log4j.properties";
+	private static final String LOG4J_CONFIG_FILE_DEFAULT = "luci-utility.log4j.xml";
+	static{
+		setPropertyFileName(LOG4J_CONFIG_FILE_DEFAULT);
+		getLog().trace("Static Evaluation of "+Globals.class.getCanonicalName()+" complete");
+	}
 	
+	public static String getPropertyFileName() {
+		return System.getProperty("log4j.configurationFile");
+	}
+	
+	public static void setPropertyFileName(String propertyFileName) {
+		System.setProperty("log4j.configurationFile",LOG4J_CONFIG_FILE_DEFAULT);
+	}
+	
+	static protected Globals _globals = null;
 	
 	public static synchronized Globals getGlobals(){
 		return _globals;
@@ -55,28 +64,19 @@ public abstract class Globals implements Quittable{
 		return(Globals._globals = _globals);
 	}
 	
-	protected String propertyFileName = propertyFileNameDefault;
 	private String databaseDomain = "localhost";
 	
-	List<Quittable> quittables = new ArrayList<Quittable>();
+	Shutdown quittables = null;
 	private CalendarCache calendarCache = null;
 	
 	private boolean shuttingDown = false;
 	private boolean testing = true;
 	
 	protected Globals(){
-		this(null);
-	}
-	
-	protected Globals(String fileName){
 		super();
-		if(fileName == null){
-			reloadLog4jProperties();
-		}
-		else{
-			reloadLog4jProperties(fileName);
-		}
 		calendarCache = new CalendarCache(CalendarCache.TZ_GMT);
+		quittables = new Shutdown(new ArrayList<Quittable>());
+		Runtime.getRuntime().addShutdownHook(quittables);
 	}
 	
 	public String getDatabaseDomain() {
@@ -91,47 +91,21 @@ public abstract class Globals implements Quittable{
 		return databaseDomain;
 	}
 	
-
-	public void reloadLog4jProperties(){
-		File f = new File(getPropertyFileName());
-		if(f.exists()){
-			PropertyConfigurator.configure(getPropertyFileName());
-		}
-		else{
-			BasicConfigurator.configure();
-			getLog().log(Level.INFO,"Unable to locate property file:"+getPropertyFileName());
-		}
-	}
-	
-	public void reloadLog4jProperties(String propertyFileName) {
-		setPropertyFileName(propertyFileName);
-		reloadLog4jProperties();
-	}
-	
-	public String getPropertyFileName() {
-		return propertyFileName;
-	}
-	
-	public void setPropertyFileName(String propertyFileName) {
-		this.propertyFileName = propertyFileName;
-	}
-	
 	public List<String> getBadGuyList() {
 		return(new ArrayList<String>());
 	}
 	
-	public synchronized void addQuittables(Quittable q){
+	public synchronized void addQuittable(Quittable q){
 		if(q != null){
 			if(shuttingDown){
-				q.setQuitting(true);
+				synchronized(q){
+					q.setQuitting(true);
+				}
 			}
 			else{
 				synchronized(quittables){
 					synchronized(q){
 						this.quittables.add(q);
-						ArrayList<Quittable> newq = new ArrayList<Quittable>();
-						Shutdown m = new Shutdown(newq);
-						Runtime.getRuntime().addShutdownHook(m);
 					}
 				}
 			}
@@ -140,26 +114,41 @@ public abstract class Globals implements Quittable{
 	
 	
 	/**
-	 * Initiate a global shutdown
+	 * Initiate a global shutdown and block till done
 	 */
 	public synchronized void setQuitting(boolean quitting){
-		
-		/* Show who called the shutdown */
-		RuntimeException e = new RuntimeException("dummy");
-		StackTraceElement[] st = e.getStackTrace();
-		StringBuffer sb = new StringBuffer();
-		for(int i = 0 ; i< st.length; i++){
-			sb.append(st[i].toString()+"\n");
-		}
-		getLog().debug("Here's who shut us down\n"+sb);
+		setQuitting(quitting, true);
+	}
+	
+	/**
+	 * Initiate a global shutdown and possibly block 
+	 */
+	public synchronized void setQuitting(boolean quitting, boolean blockTillDone){
 		
 		if(shuttingDown == false){
 			if(quitting == true){
-				shuttingDown = true;
-				for(Quittable q: quittables){
-					q.setQuitting(true);
+				
+				/* Show who called the shutdown */
+				RuntimeException e = new RuntimeException("dummy");
+				StackTraceElement[] st = e.getStackTrace();
+				StringBuffer sb = new StringBuffer();
+				for(int i = 0 ; i< st.length; i++){
+					sb.append(st[i].toString()+"\n");
 				}
-				quittables.clear();
+				getLog().trace("Here's who shut us down\n"+sb);
+				
+				synchronized(quittables){
+					shuttingDown = true;
+					quittables.start();
+					if(blockTillDone){
+						while(quittables.isAlive()){
+							try {
+								quittables.join();
+							} catch (InterruptedException e1) {
+							}
+						}
+					}
+				}
 			}
 		}
 		else{

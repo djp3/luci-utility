@@ -1,5 +1,5 @@
 /*
-	Copyright 2007-2013
+	Copyright 2007-2014
 		University of California, Irvine (c/o Donald J. Patterson)
 */
 /*
@@ -44,8 +44,8 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class WebUtil {
 	
@@ -54,7 +54,7 @@ public class WebUtil {
 	private static transient volatile Logger log = null;
 	public static Logger getLog(){
 		if(log == null){
-			log = Logger.getLogger(WebUtil.class);
+			log = LogManager.getLogger(WebUtil.class);
 		}
 		return log;
 	}
@@ -73,13 +73,13 @@ public class WebUtil {
 			Method m = input.getClass().getMethod("flush");
 			m.invoke(input);
 		} catch (NoSuchMethodException e) {
-			getLog().log(Level.DEBUG,"No Such Method Exception: flush");
+			getLog().debug("No Such Method Exception: flush");
 		} catch (IllegalAccessException e) {
-			getLog().log(Level.ERROR,"",e);
+			getLog().error("",e);
 		} catch (InvocationTargetException e) {
-			getLog().log(Level.ERROR,"",e);
+			getLog().error("",e);
 		} catch (RuntimeException e) {
-			getLog().log(Level.ERROR,"",e);
+			getLog().error("",e);
 		}
 		// Close
 		try {

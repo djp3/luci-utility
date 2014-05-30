@@ -87,7 +87,7 @@ public class HandlerTimeOutTest {
 			RequestDispatcher requestDispatcher = new RequestDispatcher(requestHandlerRegistry);
 			ws = new WebServer(requestDispatcher, port, false, new AccessControl());
 			ws.start();
-			Globals.getGlobals().addQuittables(ws);
+			Globals.getGlobals().addQuittable(ws);
 		} catch (RuntimeException e) {
 			fail("Couldn't start webserver"+e);
 		}

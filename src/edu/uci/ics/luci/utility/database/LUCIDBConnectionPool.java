@@ -1,5 +1,5 @@
 /*
-	Copyright 2007-2013
+	Copyright 2007-2014
 		University of California, Irvine (c/o Donald J. Patterson)
 */
 /*
@@ -24,8 +24,8 @@ package edu.uci.ics.luci.utility.database;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import edu.uci.ics.luci.utility.Quittable;
 
@@ -43,7 +43,7 @@ public class LUCIDBConnectionPool implements Quittable{
 	private static transient volatile Logger log = null;
 	public static Logger getLog(){
 		if(log == null){
-			log = Logger.getLogger(LUCIDBConnectionPool.class);
+			log = LogManager.getLogger(LUCIDBConnectionPool.class);
 		}
 		return log;
 	}
@@ -103,15 +103,15 @@ public class LUCIDBConnectionPool implements Quittable{
 			setDatabaseURL(databaseDomain, database);
 			dbcd = new DBConnectionDriver("com.mysql.jdbc.Driver", getDatabaseURL(), username, password,warmItUp,numberOfHotStandbys);
 		} catch (ClassNotFoundException e) {
-			getLog().error("Unable to start QuubDBConnection pool:"+e);
+			getLog().error("Unable to start LUCIDBConnection pool:"+e);
 		} catch (InstantiationException e) {
-			getLog().error("Unable to start QuubDBConnection pool:"+e);
+			getLog().error("Unable to start LUCIDBConnection pool:"+e);
 		} catch (IllegalAccessException e) {
-			getLog().error("Unable to start QuubDBConnection pool:"+e);
+			getLog().error("Unable to start LUCIDBConnection pool:"+e);
 		} catch (SQLException e) {
-			getLog().error("Unable to start QuubDBConnection pool:"+e);
+			getLog().error("Unable to start LUCIDBConnection pool:"+e);
 		} catch (RuntimeException e) {
-			getLog().error("Unable to start QuubDBConnection pool:"+e);
+			getLog().error("Unable to start LUCIDBConnection pool:"+e);
 		}
 
 	}
@@ -122,87 +122,18 @@ public class LUCIDBConnectionPool implements Quittable{
 		try {
 			c = (DBConnection) DriverManager.getConnection("jdbc:mysql:pool:" + getDatabaseURL());
 		} catch (SQLException e) {
-			getLog().log(Level.ERROR,"Unable to get a connection from the pool,"+e.toString());
+			getLog().error("Unable to get a connection from the pool,"+e.toString());
 		}
 		
 		if((c != null) && (!c.validate())){
-			getLog().log(Level.FATAL,"We should never be giving back invalid connections that aren't null");
+			getLog().fatal("We should never be giving back invalid connections that aren't null");
 			c = null;
 		}
-		
-		/*TODO: Remove this once I believe the pool is operating correctly */
-		/*
-		if(c != null){
-			RuntimeException e = new RuntimeException("dummy");
-			StackTraceElement[] st = e.getStackTrace();
-			StringBuffer sb = new StringBuffer();
-			for(int i = 0 ; i< st.length; i++){
-				sb.append(st[i].toString()+"\n");
-			}
-			c.setStackTrace(sb.toString());
-		}*/
 		
 		return(c);
 	}
 	
-	
 
-	/*
-	public DBConnection getConnection() {
-		DBConnection c = null;
-		try {
-			do{
-				do{
-					c = getConnection(5);
-				}while(c == null);
-				
-				if(!c.isValid(0)){
-					c.close();
-					c = null;
-				}
-				
-			}while(c == null);
-			
-			return(c);
-		} catch (SQLException e) {
-			if(c != null){
-				try {
-					c.close();
-				} catch (SQLException e1) {
-					c = null;
-				}
-			}
-			getLog().error("SQL Exception while trying to get a connection (Retrying)\n" + e.toString());
-			return getConnection();
-		}
-	}
-	*/
-/*
-	protected DBConnection getConnection(int tries) {
-		if (tries <= 0) {
-			getLog().error("Failing at getting a connection");
-			return (null);
-		}
-
-		try {
-			totalCount++;
-			return (DBConnection) DriverManager.getConnection("jdbc:mysql:pool:" + getDatabaseURL());
-		} catch (SQLException e) {
-			getLog().error("SQL Exception while trying to get a connection (Retrying " + tries + " times)\n" + e.toString());
-			try {
-				int pause = 100 + (int)(r.nextDouble()*100);
-				if((3-tries)>0){
-					pause = (int) Math.pow(pause,3-tries);
-				}
-				getLog().info("Pausing before retrying connection:" + pause +" ms");
-				Thread.sleep(pause);
-			} catch (InterruptedException e1) {
-			}
-			return getConnection(tries - 1);
-		}
-	}
-
-*/
 	public void shutdown() {
 		if (dbcd != null) {
 			try {

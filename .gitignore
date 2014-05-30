@@ -1,8 +1,16 @@
+# Binary Files
 bin/*
-*.log
-luci-utility.jar
+*.class
+target/classes/*
 
-#This should be developer specific, no?
+# Package Files #
+*.jar
+
+# Logs
+logs/*
+*.log
+
+#This should be developer specific, not sure
 *.classpath
 
 #These should be built or downloaded locally
@@ -17,4 +25,7 @@ lib/log4j-1.2.14.jar
 lib/jsr305.jar
 lib/mail.jar
 lib/mysql-connector-java-5.1.7-bin.jar
+
+#vim editor files
+*.swp
 

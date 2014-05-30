@@ -1,5 +1,5 @@
 /*
-	Copyright 2007-2013
+	Copyright 2007-2014
 		University of California, Irvine (c/o Donald J. Patterson)
 */
 /*
@@ -29,8 +29,9 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.configuration.ConfigurationException;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,7 +43,7 @@ public class AccessControlTest extends AccessControl{
 	private static transient volatile Logger log = null;
 	public static Logger getLog(){
 		if(log == null){
-			log = Logger.getLogger(AccessControlTest.class);
+			log = LogManager.getLogger(AccessControlTest.class);
 		}
 		return log;
 	}

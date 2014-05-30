@@ -1,5 +1,5 @@
 /*
-	Copyright 2007-2013
+	Copyright 2007-2014
 		University of California, Irvine (c/o Donald J. Patterson)
 */
 /*
@@ -90,7 +90,7 @@ public class HandlerErrorTest {
 			RequestDispatcher requestDispatcher = new RequestDispatcher(requestHandlerRegistry);
 			ws = new WebServer(requestDispatcher, port, false, new AccessControl());
 			ws.start();
-			Globals.getGlobals().addQuittables(ws);
+			Globals.getGlobals().addQuittable(ws);
 		} catch (RuntimeException e) {
 			fail("Couldn't start webserver"+e);
 		}

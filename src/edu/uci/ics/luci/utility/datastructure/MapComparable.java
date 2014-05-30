@@ -1,5 +1,5 @@
 /*
-	Copyright 2007-2013
+	Copyright 2007-2014
 		University of California, Irvine (c/o Donald J. Patterson)
 */
 /*
@@ -27,7 +27,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class MapComparable<K extends Comparable<? super K>,V extends Comparable<? super V>> implements Map<K, V>, Comparable<MapComparable<K,V>>,Serializable{
 	
@@ -39,7 +40,7 @@ public class MapComparable<K extends Comparable<? super K>,V extends Comparable<
 	private static transient volatile Logger log = null;
 	public static Logger getLog(){
 		if(log == null){
-			log = Logger.getLogger(MapComparable.class);
+			log = LogManager.getLogger(MapComparable.class);
 		}
 		return log;
 	}
@@ -104,22 +105,48 @@ public class MapComparable<K extends Comparable<? super K>,V extends Comparable<
 		}
 	}
 
-	public boolean equals(Object otherMap) {
-		if(otherMap == null){
-			return false;
-		}
-		else{
-			if(otherMap instanceof Map){
-				@SuppressWarnings("unchecked")
-				Map<K,V> b = (Map<K,V>) otherMap;
-				return(this.compareTo(b) == 0);
-			}
-			else{
-				return(false);
-			}
-		}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((map == null) ? 0 : map.hashCode());
+		return result;
 	}
 
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@SuppressWarnings("unchecked")
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		MapComparable<K,V> other;
+		if (obj instanceof MapComparable) {
+			other = (MapComparable<K,V>) obj;
+		}else{
+			return false;
+		}
+		if (map == null) {
+			if (other.map != null) {
+				return false;
+			}
+			else{
+				return true;
+			}
+		} else{
+			return(this.compareTo(other) == 0);
+		}
+	}
+	
 
 	public void clear() {
 		map.clear();

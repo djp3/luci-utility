@@ -1,5 +1,5 @@
 /*
-	Copyright 2007-2013
+	Copyright 2007-2014
 		University of California, Irvine (c/o Donald J. Patterson)
 */
 /*
@@ -28,7 +28,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class ListComparable<T extends Comparable<? super T>> implements List<T>, Comparable<ListComparable<T>>,Serializable {
 	
@@ -40,7 +41,7 @@ public class ListComparable<T extends Comparable<? super T>> implements List<T>,
 	private static transient volatile Logger log = null;
 	public static Logger getLog(){
 		if(log == null){
-			log = Logger.getLogger(ListComparable.class);
+			log = LogManager.getLogger(ListComparable.class);
 		}
 		return log;
 	}
@@ -84,21 +85,51 @@ public class ListComparable<T extends Comparable<? super T>> implements List<T>,
 		return 0;
 	}
 
-	public boolean equals(Object otherList) {
-		if(otherList == null){
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((list == null) ? 0 : list.hashCode());
+		return result;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@SuppressWarnings("unchecked")
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
 			return false;
 		}
+		ListComparable<T> other;
+		if (obj instanceof ListComparable) {
+			other = (ListComparable<T>) obj;
+		}
 		else{
-			if(otherList instanceof List){
-				@SuppressWarnings("unchecked")
-				List<T> l = (List<T>) otherList;
-				return(this.compareTo(l) == 0);
-			}
-			else{
+			return false;
+		}
+		
+		if (list == null) {
+			if (other.list != null) {
 				return false;
 			}
+			else{
+				return true;
+			}
+		} else{
+			return(this.compareTo(other) == 0);
 		}
 	}
+	
+
 
 	public boolean add(T arg0) {
 		return list.add(arg0);

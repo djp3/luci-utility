@@ -1,5 +1,5 @@
 /*
-	Copyright 2007-2013
+	Copyright 2007-2014
 		University of California, Irvine (c/o Donald J. Patterson)
 */
 /*
@@ -31,8 +31,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.mysql.jdbc.exceptions.jdbc4.CommunicationsException;
 
@@ -51,7 +51,7 @@ public class DBConnectionPool {
 	private static transient volatile Logger log = null;
 	public static Logger getLog(){
 		if(log == null){
-			log = Logger.getLogger(DBConnectionPool.class);
+			log = LogManager.getLogger(DBConnectionPool.class);
 		}
 		return log;
 	}
@@ -75,7 +75,7 @@ public class DBConnectionPool {
 	    
 	    public synchronized void run() {
 	        while(!quitting) {
-	        	DBConnectionPool.getLog().log(Level.DEBUG, "Connection Reaper reaping connections");
+	        	DBConnectionPool.getLog().debug("Connection Reaper reaping connections");
 	        	pool.reapConnections();
 	        	checkForHotStandby();
 	        	try {
@@ -112,12 +112,12 @@ public class DBConnectionPool {
 		
 		connections =  new Vector<DBConnection>(this.hotStandby);
 		
-		getLog().log(Level.INFO, "Warming up with:"+warmItUp);
+		getLog().info("Warming up with:"+warmItUp);
 		if((warmItUp != null) && (warmItUp > 0)){
 			checkForHotStandby(warmItUp);
 		}
 		
-		getLog().log(Level.INFO, "Making hot standby's with:"+this.hotStandby);
+		getLog().info("Making hot standby's with:"+this.hotStandby);
 		checkForHotStandby(this.hotStandby);
 		
 		reaper = new ConnectionReaper(this);
@@ -150,7 +150,7 @@ public class DBConnectionPool {
 						conn.close();
 					}
 				} catch (SQLException e) {
-					getLog().log(Level.ERROR,"Problem closing connection",e);
+					getLog().error("Problem closing connection",e);
 				}
 			}
 		}
@@ -162,7 +162,7 @@ public class DBConnectionPool {
 				/*Soft close the connection */
 				conn.close();
 			} catch (SQLException e) {
-				getLog().log(Level.ERROR,"Database error while soft closing a connection",e);
+				getLog().error("Database error while soft closing a connection",e);
 			}
 			finally{
 				if(conn.getConnection() != null){
@@ -170,7 +170,7 @@ public class DBConnectionPool {
 						/* Hard destroy the underlying connection */
 						conn.getConnection().close();
 					} catch (SQLException e) {
-						getLog().log(Level.ERROR,"Database error while hard closing a connection:",e);
+						getLog().error("Database error while hard closing a connection:",e);
 					}
 				}
 			}
@@ -190,7 +190,7 @@ public class DBConnectionPool {
 			for(DBConnection conn:connectionsCopy){
 				hardCloseConnection(conn);
 			}
-			getLog().log(Level.DEBUG, "Hard reaped "+(count-connections.size())+" connections. "+connections.size()+" connections are left.");
+			getLog().debug("Hard reaped "+(count-connections.size())+" connections. "+connections.size()+" connections are left.");
 		}
 	}
 	
@@ -217,7 +217,7 @@ public class DBConnectionPool {
 					if(staleTime > conn.getLastUse()){
 						stale++;
 						if(conn.validate()){
-							getLog().log(Level.INFO, "I've got an old connection lying around with this stack trace:\n"+conn.getStackTrace());
+							getLog().info("I've got an old connection lying around with this stack trace:\n"+conn.getStackTrace());
 						}
 						else{
 							invalid++;
@@ -236,10 +236,10 @@ public class DBConnectionPool {
 					}
 				}
 			}
-			getLog().log(Level.DEBUG, total+" connections found in the pool, inuse:"+inuse+"(stale:"+stale+",invalid/reaped:"+invalid+"),not inuse:"+notinuse+"(stale:"+notinuse_stale+",over hotstandby/reaped:"+notinuse_reduced+"), hot standby:"+this.hotStandby+",ended with:"+connections.size());
+			getLog().debug(total+" connections found in the pool, inuse:"+inuse+"(stale:"+stale+",invalid/reaped:"+invalid+"),not inuse:"+notinuse+"(stale:"+notinuse_stale+",over hotstandby/reaped:"+notinuse_reduced+"), hot standby:"+this.hotStandby+",ended with:"+connections.size());
 		}
 		else{
-			getLog().log(Level.FATAL, "Why is the DBConnection Pool missing a datastructure?");
+			getLog().fatal("Why is the DBConnection Pool missing a datastructure?");
 		}
 	}
 	
@@ -279,7 +279,7 @@ public class DBConnectionPool {
 				while(connectionsNeeded > 0){
 					getLog().debug("Required Hot: "+numberToKeepHot+", size: "+connections.size()+", inuse:"+inuse+", needed: "+connectionsNeeded);
 					for(int i = 0;i < connectionsNeeded;i++){
-						getLog().log(Level.DEBUG, "Trying to make a connection for hot standby, available pool size is "+(connections.size()-inuse)+"/"+connections.size()+" < "+numberToKeepHot);
+						getLog().debug("Trying to make a connection for hot standby, available pool size is "+(connections.size()-inuse)+"/"+connections.size()+" < "+numberToKeepHot);
 						//c[i] = getSoftConnection(); //Why soft and not hard?
 						DBConnection c = getHardConnection(); 
 						if(c != null){
@@ -289,7 +289,7 @@ public class DBConnectionPool {
 						ResultSet dummy=null;
 						try{
 							if( c == null){
-								getLog().log(Level.ERROR, "Unable to make a connection for hot standby, available pool size is "+(connections.size()-inuse)+"/"+connections.size()+" < "+numberToKeepHot);
+								getLog().error("Unable to make a connection for hot standby, available pool size is "+(connections.size()-inuse)+"/"+connections.size()+" < "+numberToKeepHot);
 							}
 							else{
 								try {
@@ -297,7 +297,7 @@ public class DBConnectionPool {
 									psList.add(ps);
 									dummy = ps.executeQuery();
 								} catch (SQLException e) {
-									getLog().log(Level.ERROR, "Unable to execute a statement to make hot standbys, pool size is "+connections.size()+" < "+numberToKeepHot);
+									getLog().error("Unable to execute a statement to make hot standbys, pool size is "+connections.size()+" < "+numberToKeepHot);
 								}
 							}
 						}
@@ -318,7 +318,7 @@ public class DBConnectionPool {
 			//} catch (SQLException e) {
 			//	getLog().log(Level.ERROR, "Unable to make a connection for hot standby, available pool size is "+(connections.size()-inuse)+"/"+connections.size()+" < "+numberToKeepHot);
 			} catch (RuntimeException e) {
-				getLog().log(Level.ERROR, "Problem in checkForHotStandby:"+e);
+				getLog().error("Problem in checkForHotStandby:"+e);
 			}
 			finally{
 				for(PreparedStatement ps:psList){
@@ -337,7 +337,7 @@ public class DBConnectionPool {
 						}
 					}
 				}
-				getLog().log(Level.DEBUG, "Made a required connection for hot standby/warm up, pool size is "+connections.size()+", require: "+numberToKeepHot);
+				getLog().debug("Made a required connection for hot standby/warm up, pool size is "+connections.size()+", require: "+numberToKeepHot);
 			}
 		}
 	}
@@ -355,7 +355,7 @@ public class DBConnectionPool {
 			}
 	
 			if(connections.size() > POOL_HARD_LIMIT){
-				getLog().log(Level.FATAL,"The number of connections in the database pool is "+connections.size()+", greater than "+POOL_HARD_LIMIT+". Failing to deliver a connection.");
+				getLog().fatal("The number of connections in the database pool is "+connections.size()+", greater than "+POOL_HARD_LIMIT+". Failing to deliver a connection.");
 			}
 		
 			Connection conn = null;
@@ -366,7 +366,7 @@ public class DBConnectionPool {
 				return(null);
 			
 			} catch (SQLException e) {
-				getLog().log(Level.ERROR, "Unable to get a hard connection from the database: "+e);
+				getLog().error("Unable to get a hard connection from the database: "+e);
 			}
 			
 			if(conn != null){
