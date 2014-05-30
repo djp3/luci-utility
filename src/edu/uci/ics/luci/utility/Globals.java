@@ -41,17 +41,13 @@ public abstract class Globals implements Quittable{
 	}
 	
 	private static final String LOG4J_CONFIG_FILE_DEFAULT = "luci-utility.log4j.xml";
-	static{
-		setPropertyFileName(LOG4J_CONFIG_FILE_DEFAULT);
-		getLog().trace("Static Evaluation of "+Globals.class.getCanonicalName()+" complete");
-	}
 	
-	public static String getPropertyFileName() {
+	public static String getLog4JPropertyFileName() {
 		return System.getProperty("log4j.configurationFile");
 	}
 	
-	public static void setPropertyFileName(String propertyFileName) {
-		System.setProperty("log4j.configurationFile",LOG4J_CONFIG_FILE_DEFAULT);
+	public static void setLog4JPropertyFileName(String propertyFileName) {
+		System.setProperty("log4j.configurationFile",propertyFileName);
 	}
 	
 	static protected Globals _globals = null;
@@ -66,7 +62,7 @@ public abstract class Globals implements Quittable{
 	
 	private String databaseDomain = "localhost";
 	
-	Shutdown quittables = null;
+	private Shutdown quittables = null;
 	private CalendarCache calendarCache = null;
 	
 	private boolean shuttingDown = false;
@@ -74,9 +70,16 @@ public abstract class Globals implements Quittable{
 	
 	protected Globals(){
 		super();
+		setLog4JPropertyFileName(LOG4J_CONFIG_FILE_DEFAULT);
+		getLog().trace("Static Evaluation of "+Globals.class.getCanonicalName()+" complete");
+		
 		calendarCache = new CalendarCache(CalendarCache.TZ_GMT);
+		
 		quittables = new Shutdown(new ArrayList<Quittable>());
-		Runtime.getRuntime().addShutdownHook(quittables);
+		Thread t = new Thread(quittables);
+		t.setName("ShutdownHook Shutdown Thread");
+		t.setDaemon(false);
+		Runtime.getRuntime().addShutdownHook(t);
 	}
 	
 	public String getDatabaseDomain() {
@@ -139,11 +142,14 @@ public abstract class Globals implements Quittable{
 				
 				synchronized(quittables){
 					shuttingDown = true;
-					quittables.start();
+					Thread t = new Thread(quittables);
+					t.setName("Shutdown Thread");
+					t.setDaemon(false);
+					t.start();
 					if(blockTillDone){
-						while(quittables.isAlive()){
+						while(t.isAlive()){
 							try {
-								quittables.join();
+								t.join();
 							} catch (InterruptedException e1) {
 							}
 						}

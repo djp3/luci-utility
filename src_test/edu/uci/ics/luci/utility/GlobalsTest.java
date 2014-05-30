@@ -81,6 +81,14 @@ public class GlobalsTest extends Globals {
 		setTesting(false);
 		assertEquals(false, isTesting());
 		
+		String fakeFileName = "foo_+"+random.nextInt()+".xml";
+		setLog4JPropertyFileName(fakeFileName);
+		assertEquals(fakeFileName,getLog4JPropertyFileName());
+		
+		fakeFileName = "foo_+"+random.nextInt()+".xml";
+		Globals.setLog4JPropertyFileName(fakeFileName);
+		assertEquals(fakeFileName,Globals.getLog4JPropertyFileName());
+		
 		TestQuittable x = new TestQuittable();
 		Globals.getGlobals().addQuittable(x);
 		assertTrue(!x.isQuitting());
