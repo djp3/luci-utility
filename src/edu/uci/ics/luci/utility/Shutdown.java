@@ -30,6 +30,7 @@ import org.apache.logging.log4j.Logger;
 public class Shutdown implements Runnable {
 
 	private Object shutdownLock = new Object();
+	private boolean firstShutdown = true;
 	private List<Quittable> q = null;
 
 	private static transient volatile Logger log = null;
@@ -59,7 +60,9 @@ public class Shutdown implements Runnable {
 
 	public void run() {
 		synchronized (shutdownLock) {
-			getLog().debug("MyShutdown shutting down");
+			if(firstShutdown){
+				getLog().debug("MyShutdown shutting down");
+			}
 			if (q != null) {
 				try {
 					for (Quittable x : q) {
@@ -76,7 +79,10 @@ public class Shutdown implements Runnable {
 					q = null;
 				}
 			}
-			getLog().debug("Done shutting down");
+			if(firstShutdown){
+				getLog().debug("Done shutting down");
+			}
+			firstShutdown = false;
 		}
 	}
 }
