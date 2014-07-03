@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="US-ASCII" standalone="no"?>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <jardesc>
     <jar path="luci-utility/luci-utility.jar"/>
     <options buildIfNeeded="true" compress="true" descriptionLocation="/luci-utility/luci-utility.jardesc" exportErrors="true" exportWarnings="true" includeDirectoryEntries="false" overwrite="true" saveDescription="true" storeRefactorings="false" useSourceFolders="false"/>
@@ -11,19 +11,19 @@
         </sealing>
     </manifest>
     <selectedElements exportClassFiles="true" exportJavaFiles="true" exportOutputFolder="false">
-        <folder path="/luci-utility/test"/>
-        <file path="/luci-utility/CHANGES"/>
-        <file path="/luci-utility/.classpath"/>
+        <javaElement handleIdentifier="=luci-utility/src"/>
+        <file path="/luci-utility/luci-utility.log4j.xml"/>
+        <file path="/luci-utility/VERSION"/>
+        <file path="/luci-utility/luci-utility.jardesc"/>
+        <file path="/luci-utility/.project"/>
         <file path="/luci-utility/pom.xml"/>
         <file path="/luci-utility/luci-utility.manifest"/>
-        <file path="/luci-utility/.gitignore"/>
+        <file path="/luci-utility/CHANGES"/>
+        <file path="/luci-utility/.classpath"/>
+        <folder path="/luci-utility/test"/>
         <file path="/luci-utility/COPYING"/>
-        <file path="/luci-utility/VERSION"/>
-        <file path="/luci-utility/.project"/>
-        <file path="/luci-utility/README.md"/>
-        <javaElement handleIdentifier="=luci-utility/src"/>
-        <file path="/luci-utility/luci-utility.jardesc"/>
-        <file path="/luci-utility/luci-utility.log4j.xml"/>
         <folder path="/luci-utility/lib"/>
+        <file path="/luci-utility/.gitignore"/>
+        <file path="/luci-utility/README.md"/>
     </selectedElements>
 </jardesc>

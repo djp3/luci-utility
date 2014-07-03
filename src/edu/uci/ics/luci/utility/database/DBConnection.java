@@ -38,7 +38,6 @@ import java.sql.Statement;
 import java.sql.Struct;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.Executor;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -348,7 +347,8 @@ public class DBConnection implements Connection{
 	}
 
 	/*
-	 * Needed in Java 1.7*/
+	 * Needed in Java 1.7, but we are standardizing on 1.6 for Android compatibility*/
+	/*
 	public void setSchema(String schema) throws SQLException {
 		conn.setSchema(schema);
 	}
@@ -368,6 +368,7 @@ public class DBConnection implements Connection{
 	public int getNetworkTimeout() throws SQLException {
 		return conn.getNetworkTimeout();
 	}
+	*/
 
 }
 
