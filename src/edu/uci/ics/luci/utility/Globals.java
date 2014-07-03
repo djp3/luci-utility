@@ -140,18 +140,19 @@ public abstract class Globals implements Quittable{
 				}
 				getLog().trace("Here's who shut us down\n"+sb);
 				
+				Thread t;
 				synchronized(quittables){
 					shuttingDown = true;
-					Thread t = new Thread(quittables);
+					t = new Thread(quittables);
 					t.setName("Shutdown Thread");
 					t.setDaemon(false);
 					t.start();
-					if(blockTillDone){
-						while(t.isAlive()){
-							try {
-								t.join();
-							} catch (InterruptedException e1) {
-							}
+				}
+				if(blockTillDone){
+					while(t.isAlive()){
+						try {
+							t.join();
+						} catch (InterruptedException e1) {
 						}
 					}
 				}

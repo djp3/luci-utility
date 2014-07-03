@@ -29,9 +29,8 @@ import org.apache.logging.log4j.Logger;
 
 public class Shutdown implements Runnable {
 
-	private Object shutdownLock = new Object();
 	private boolean firstShutdown = true;
-	private List<Quittable> q = null;
+	private List<Quittable> quittables = null;
 
 	private static transient volatile Logger log = null;
 
@@ -44,45 +43,42 @@ public class Shutdown implements Runnable {
 
 	public Shutdown(List<Quittable> q) {
 		super();
-		this.q = new ArrayList<Quittable>();
-		this.q.addAll(q);
+		this.quittables = new ArrayList<Quittable>();
+		this.quittables.addAll(q);
 	}
 
-	public void add(Quittable q) {
+	public synchronized void add(Quittable q) {
+		if(this.quittables == null){
+			this.quittables = new ArrayList<Quittable>();
+		}
 		if(q != null){
-			this.q.add(q);
-		}
-		else{
-			this.q = new ArrayList<Quittable>();
-			this.q.add(q);
+			this.quittables.add(q);
 		}
 	}
 
-	public void run() {
-		synchronized (shutdownLock) {
-			if(firstShutdown){
-				getLog().debug("MyShutdown shutting down");
-			}
-			if (q != null) {
-				try {
-					for (Quittable x : q) {
-						if (x != null) {
-							synchronized (x) {
-								if (!x.isQuitting()) {
-									x.setQuitting(true);
-									x.notifyAll();
-								}
+	public synchronized void run() {
+		if(firstShutdown){
+			getLog().debug("MyShutdown shutting down");
+		}
+		if (quittables != null) {
+			try {
+				for (Quittable q : quittables) {
+					if (q != null) {
+						synchronized (q) {
+							if (!q.isQuitting()) {
+								q.setQuitting(true);
+								q.notifyAll();
 							}
 						}
 					}
-				} finally {
-					q = null;
 				}
+			} finally {
+				quittables = null;
 			}
-			if(firstShutdown){
-				getLog().debug("Done shutting down");
-			}
-			firstShutdown = false;
 		}
+		if(firstShutdown){
+			getLog().debug("Done shutting down");
+		}
+		firstShutdown = false;
 	}
 }
