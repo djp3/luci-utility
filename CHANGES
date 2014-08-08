@@ -1,5 +1,16 @@
+Version 0.0.9
+(Aug. 8, 2014)
+	* Added a StringStuff utility class
+	* converted to a maven project, mostly to manage dependencies
+	* converted to log4j v2
+	* Messed around with java vm standardization and ended up at 1.6 for Android compatibility		
+	* Refactored the tests so they aren't in the same src folder for smaller exporting
+	* Cleaned up shutdown process
+	
+Version 0.0.8
+
 Version 0.0.7
-	Not merged into production yet
+	Lost track of changes
 
 Version 0.0.6
 (Dec. 14, 2013)

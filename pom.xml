@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>edu.uci.ics.luci</groupId>
   <artifactId>luci-utility</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.0.9-SNAPSHOT</version>
   <build>
     <sourceDirectory>src</sourceDirectory>
     <resources>
@@ -18,9 +18,14 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.1</version>
         <configuration>
-          <source/>
-          <target/>
+          <source>1.6</source>
+          <target>1.6</target>
         </configuration>
+      </plugin>
+      <plugin>
+      	<groupId>org.apache.maven.plugins</groupId>
+      	<artifactId>maven-compiler-plugin</artifactId>
+      	<version>3.1</version>
       </plugin>
     </plugins>
   </build>
