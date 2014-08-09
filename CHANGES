@@ -1,3 +1,6 @@
+Version 0.0.10 candidate
+	* Put json-smart into pom
+
 Version 0.0.9
 (Aug. 8, 2014)
 	* Added a StringStuff utility class
