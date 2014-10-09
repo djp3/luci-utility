@@ -211,6 +211,14 @@ public class DBConnectionTest {
 			assertTrue(count == 1);
 		}
 	}
+	
+	private static boolean error = false;
+	private static String errorReason = new String("");
+	
+	private synchronized static void setError(String reason){
+		error = true;
+		errorReason = reason;
+	}
 
 	public class Tester implements Runnable {
 
@@ -241,11 +249,18 @@ public class DBConnectionTest {
 
 			try{
 				c = pool.getConnection();
-
-				synchronized(countLock){
-					statementBattery(c, "testtable" + count);
-					incrementCount();
+				if(c == null){
+					setError("Connection to database was null");
 				}
+				else{
+					synchronized(countLock){
+						statementBattery(c, "testtable" + count);
+						incrementCount();
+					}
+				}
+			}
+			catch(RuntimeException e){
+				setError(e.toString());
 			}
 			finally{
 				if(c != null){
@@ -260,6 +275,7 @@ public class DBConnectionTest {
 		}
 		
 	}
+	
 
 	@Test
 	public void testDBConnect() {
@@ -272,7 +288,7 @@ public class DBConnectionTest {
 		int count = 0;
 
 		getLog().info( "Creating and testing " + number + " connection operations. "+tests+" connections have been made already");
-
+		
 		for (int j = 0; j < outernumber; j++) {
 
 			for (int i = 0; i < number ; i++) {
@@ -292,6 +308,9 @@ public class DBConnectionTest {
 					getLog().error(e.toString());
 					fail("This shouldn't happen");
 				}
+			}
+			if(error){
+				fail("Is a local mysql server running? It needs to be to pass this test.  Here's some details:"+errorReason);
 			}
 
 			System.out.println(""+count);
