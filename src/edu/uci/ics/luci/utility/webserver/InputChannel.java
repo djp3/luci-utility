@@ -2,7 +2,8 @@ package edu.uci.ics.luci.utility.webserver;
 
 public interface InputChannel {
 	
-	//This only makes sense for sockets
+	//TODO:These only makes sense for sockets and need to be refactored
 	int getPort();
+	boolean getSecure();
 
 }

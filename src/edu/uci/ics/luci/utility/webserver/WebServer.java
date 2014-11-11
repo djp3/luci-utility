@@ -179,9 +179,8 @@ public class WebServer implements Runnable,Quittable{
 			this.accessControl.setBadGuyTest(new ArrayList<String>());
 		}
 		
-		this.setSecure(secure);
 		try{
-			if(getSecure()){
+			if(inputChannel.getSecure()){
 				SSLContext sctx1 = null;
 				try{
 					//to make the keystore example

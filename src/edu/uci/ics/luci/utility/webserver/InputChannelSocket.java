@@ -16,7 +16,8 @@ public class InputChannelSocket implements InputChannel{
 		return this.port;
 	}
 
-	public Boolean getSecure() {
+	@Override
+	public boolean getSecure() {
 		return secure;
 	}
 
