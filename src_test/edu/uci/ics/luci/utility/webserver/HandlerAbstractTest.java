@@ -21,10 +21,17 @@
 
 package edu.uci.ics.luci.utility.webserver;
 
+import static org.junit.Assert.fail;
+
+import java.util.HashMap;
+
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+
+import edu.uci.ics.luci.utility.Globals;
+import edu.uci.ics.luci.utility.webserver.handlers.HandlerError;
 
 public class HandlerAbstractTest {
 
@@ -42,6 +49,24 @@ public class HandlerAbstractTest {
 
 	@After
 	public void tearDown() throws Exception {
+	}
+	
+
+	public static WebServer startAWebServerSocket(Globals globals,int port,boolean secure) {
+		try {
+			InputChannelSocket inputChannel = new InputChannelSocket(port,secure);
+			HashMap<String, HandlerAbstract> requestHandlerRegistry = new HashMap<String,HandlerAbstract>();
+			requestHandlerRegistry.put(null,new HandlerError(Globals.getGlobals().getSystemVersion()));
+				
+			RequestDispatcher requestDispatcher = new RequestDispatcher(requestHandlerRegistry);
+			WebServer ws = new WebServer(inputChannel, requestDispatcher, new AccessControl());
+			ws.start();
+			globals.addQuittable(ws);
+			return ws;
+		} catch (RuntimeException e) {
+			fail("Couldn't start webserver"+e);
+		}
+		return null;
 	}
 
 	/*

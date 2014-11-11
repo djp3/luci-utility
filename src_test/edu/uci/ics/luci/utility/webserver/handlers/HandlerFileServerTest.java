@@ -36,10 +36,8 @@ import org.junit.Test;
 
 import edu.uci.ics.luci.utility.Globals;
 import edu.uci.ics.luci.utility.GlobalsTest;
-import edu.uci.ics.luci.utility.webserver.AccessControl;
 import edu.uci.ics.luci.utility.webserver.HandlerAbstract;
-import edu.uci.ics.luci.utility.webserver.InputChannelSocket;
-import edu.uci.ics.luci.utility.webserver.RequestDispatcher;
+import edu.uci.ics.luci.utility.webserver.HandlerAbstractTest;
 import edu.uci.ics.luci.utility.webserver.WebServer;
 import edu.uci.ics.luci.utility.webserver.WebUtil;
 
@@ -70,7 +68,9 @@ public class HandlerFileServerTest {
 
 	@Before
 	public void setUp() throws Exception {
-		startAWebServer(testPortPlusPlus());
+		int port = testPortPlusPlus();
+		boolean secure = false;
+		ws = HandlerAbstractTest.startAWebServerSocket(Globals.getGlobals(),port,secure);
 	}
 
 	@After
@@ -78,35 +78,14 @@ public class HandlerFileServerTest {
 	}
 	
 	
-
-	private void startAWebServer(int port) {
-		try {
-			InputChannelSocket inputChannel = new InputChannelSocket();
-			requestHandlerRegistry = new HashMap<String,HandlerAbstract>();
-			HandlerAbstract handler = new HandlerFileServer(edu.uci.ics.luci.utility.Globals.class,"/www_test/");
-			requestHandlerRegistry.put(null,handler);
-			
-			handler = new HandlerVersion(Globals.getGlobals().getSystemVersion());
-			requestHandlerRegistry.put("",handler);
-			
-			RequestDispatcher dispatcher = new RequestDispatcher(requestHandlerRegistry);
-			ws = new WebServer(inputChannel,dispatcher, port, false, new AccessControl());
-			ws.start();
-			Globals.getGlobals().addQuittable(ws);
-		} catch (RuntimeException e) {
-			fail("Couldn't start webserver"+e);
-		}
-	}
-
-	
 	@Test
-	public void testWebServer() {
+	public void testWebServerSocket() {
 		
 		String responseString = null;
 		try {
 			HashMap<String, String> params = new HashMap<String, String>();
 
-			responseString = WebUtil.fetchWebPage("http://localhost:" + ws.getPort() + "/index.html", false, params, 30 * 1000);
+			responseString = WebUtil.fetchWebPage("http://localhost:" + ws.getInputChannel().getPort() + "/", false, params, 30 * 1000);
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 			fail("Bad URL");
