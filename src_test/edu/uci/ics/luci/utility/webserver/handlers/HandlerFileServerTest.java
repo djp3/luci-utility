@@ -34,11 +34,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-
 import edu.uci.ics.luci.utility.Globals;
 import edu.uci.ics.luci.utility.GlobalsTest;
 import edu.uci.ics.luci.utility.webserver.AccessControl;
 import edu.uci.ics.luci.utility.webserver.HandlerAbstract;
+import edu.uci.ics.luci.utility.webserver.InputChannelSocket;
 import edu.uci.ics.luci.utility.webserver.RequestDispatcher;
 import edu.uci.ics.luci.utility.webserver.WebServer;
 import edu.uci.ics.luci.utility.webserver.WebUtil;
@@ -81,6 +81,7 @@ public class HandlerFileServerTest {
 
 	private void startAWebServer(int port) {
 		try {
+			InputChannelSocket inputChannel = new InputChannelSocket();
 			requestHandlerRegistry = new HashMap<String,HandlerAbstract>();
 			HandlerAbstract handler = new HandlerFileServer(edu.uci.ics.luci.utility.Globals.class,"/www_test/");
 			requestHandlerRegistry.put(null,handler);
@@ -89,7 +90,7 @@ public class HandlerFileServerTest {
 			requestHandlerRegistry.put("",handler);
 			
 			RequestDispatcher dispatcher = new RequestDispatcher(requestHandlerRegistry);
-			ws = new WebServer(dispatcher, port, false, new AccessControl());
+			ws = new WebServer(inputChannel,dispatcher, port, false, new AccessControl());
 			ws.start();
 			Globals.getGlobals().addQuittable(ws);
 		} catch (RuntimeException e) {

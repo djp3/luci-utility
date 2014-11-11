@@ -37,11 +37,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-
 import edu.uci.ics.luci.utility.Globals;
 import edu.uci.ics.luci.utility.GlobalsTest;
 import edu.uci.ics.luci.utility.webserver.AccessControl;
 import edu.uci.ics.luci.utility.webserver.HandlerAbstract;
+import edu.uci.ics.luci.utility.webserver.InputChannelSocket;
 import edu.uci.ics.luci.utility.webserver.RequestDispatcher;
 import edu.uci.ics.luci.utility.webserver.WebServer;
 import edu.uci.ics.luci.utility.webserver.WebUtil;
@@ -84,12 +84,13 @@ public class HandlerVersionTest {
 
 	private void startAWebServer(int port) {
 		try {
+			InputChannelSocket inputChannel = new InputChannelSocket();
 			requestHandlerRegistry = new HashMap<String, HandlerAbstract>();
 			requestHandlerRegistry.put("",new HandlerVersion(Globals.getGlobals().getSystemVersion()));
 			requestHandlerRegistry.put("version",new HandlerVersion(Globals.getGlobals().getSystemVersion()));
 			
 			RequestDispatcher dispatcher = new RequestDispatcher(requestHandlerRegistry);
-			ws = new WebServer(dispatcher, port, false, new AccessControl());
+			ws = new WebServer(inputChannel,dispatcher, port, false, new AccessControl());
 			ws.start();
 			Globals.getGlobals().addQuittable(ws);
 		} catch (RuntimeException e) {

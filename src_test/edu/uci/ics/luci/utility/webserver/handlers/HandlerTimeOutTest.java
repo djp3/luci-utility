@@ -34,11 +34,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-
 import edu.uci.ics.luci.utility.Globals;
 import edu.uci.ics.luci.utility.GlobalsTest;
 import edu.uci.ics.luci.utility.webserver.AccessControl;
 import edu.uci.ics.luci.utility.webserver.HandlerAbstract;
+import edu.uci.ics.luci.utility.webserver.InputChannelSocket;
 import edu.uci.ics.luci.utility.webserver.RequestDispatcher;
 import edu.uci.ics.luci.utility.webserver.WebServer;
 import edu.uci.ics.luci.utility.webserver.WebUtil;
@@ -81,11 +81,13 @@ public class HandlerTimeOutTest {
 
 	private void startAWebServer(int port) {
 		try {
+			InputChannelSocket inputChannel = new InputChannelSocket();
 			requestHandlerRegistry = new HashMap<String,HandlerAbstract>();
+			
 			requestHandlerRegistry.put(null,new HandlerTimeOut());
 			
 			RequestDispatcher requestDispatcher = new RequestDispatcher(requestHandlerRegistry);
-			ws = new WebServer(requestDispatcher, port, false, new AccessControl());
+			ws = new WebServer(inputChannel,requestDispatcher, port, false, new AccessControl());
 			ws.start();
 			Globals.getGlobals().addQuittable(ws);
 		} catch (RuntimeException e) {
