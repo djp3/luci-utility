@@ -85,6 +85,7 @@ public class WebServer implements Runnable,Quittable{
 	
 	private boolean quitting = false;
 
+	private InputChannel inputChannel = null;
 	private RequestDispatcher requestDispatcher= null;
 	private AccessControl accessControl;
 	
@@ -132,14 +133,10 @@ public class WebServer implements Runnable,Quittable{
 		return count;
 	}
 	
+	public InputChannel getInputChannel(){
+		return inputChannel;
+	}
 	
-	public Boolean getSecure() {
-		return secure;
-	}
-
-	public void setSecure(Boolean secure) {
-		this.secure = secure;
-	}
 	
 	public String getHTTPServerHeader() {
 		return HTTP_SERVER_HEADER;
@@ -149,9 +146,6 @@ public class WebServer implements Runnable,Quittable{
 		HTTP_SERVER_HEADER = http;
 	}
 	
-	public int getPort(){
-		return this.port;
-	}
 	
 	public Thread getWebServer() {
 		return webServer;
@@ -161,7 +155,7 @@ public class WebServer implements Runnable,Quittable{
 		this.webServer = webServer;
 	}
 
-	public WebServer(InputChannel inputChannel, RequestDispatcher requestDispatcher,int port,boolean secure,AccessControl accessControl){
+	public WebServer(InputChannel inputChannel, RequestDispatcher requestDispatcher,AccessControl accessControl){
 		if(inputChannel == null){
 			throw new InvalidParameterException("The Input Channel can't be null");
 		}
@@ -171,11 +165,9 @@ public class WebServer implements Runnable,Quittable{
 		if(accessControl == null){
 			throw new InvalidParameterException("The Access Control can't be null");
 		}
-		
+		this.inputChannel = inputChannel;
 		this.requestDispatcher = requestDispatcher;
 		this.requestDispatcher.setWebServer(this);
-		
-		this.port = port;
 		
 		threadExecutor = Executors.newFixedThreadPool(threadPoolSize);
 		
