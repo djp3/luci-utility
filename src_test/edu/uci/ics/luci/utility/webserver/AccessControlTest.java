@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.configuration.ConfigurationException;
-import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.After;
@@ -83,7 +82,7 @@ public class AccessControlTest extends AccessControl{
 			loadConfiguration();
 		}
 		catch(Exception e){
-			getLog().log(Level.ERROR,"Failed to load test.properties",e);
+			getLog().error("Failed to load test.properties",e);
 			fail("Failed to load test.properties");
 		}
 		
@@ -145,7 +144,7 @@ public class AccessControlTest extends AccessControl{
 			loadConfiguration();
 		}
 		catch(Exception e){
-			getLog().log(Level.ERROR,"Failed to load test.properties",e);
+			getLog().error("Failed to load test.properties",e);
 			fail("Failed to load test.properties");
 		}
 		
@@ -199,7 +198,7 @@ public class AccessControlTest extends AccessControl{
 			loadConfiguration();
 		}
 		catch(Exception e){
-			getLog().log(Level.ERROR,"Failed to load access_control_list.properties",e);
+			getLog().error("Failed to load access_control_list.properties",e);
 			fail("Failed to load test.properties");
 		}
 		
@@ -284,7 +283,7 @@ public class AccessControlTest extends AccessControl{
 	}
 	
 	@Test
-	@edu.umd.cs.findbugs.annotations.SuppressWarnings(value={"UW_UNCOND_WAIT","WA_NOT_IN_LOOP"}, justification="This is testing code")
+	@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value={"UW_UNCOND_WAIT","WA_NOT_IN_LOOP"}, justification="This is testing code")
 	public void testCacheExpiring() {
 		final long cacheExpireTime = 5* 1000L; // 5 seconds, 1 second was too short
 		
