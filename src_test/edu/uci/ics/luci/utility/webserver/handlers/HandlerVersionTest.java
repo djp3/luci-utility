@@ -39,20 +39,12 @@ import org.junit.Test;
 
 import edu.uci.ics.luci.utility.Globals;
 import edu.uci.ics.luci.utility.GlobalsTest;
-import edu.uci.ics.luci.utility.webserver.AccessControl;
 import edu.uci.ics.luci.utility.webserver.HandlerAbstract;
 import edu.uci.ics.luci.utility.webserver.HandlerAbstractTest;
 import edu.uci.ics.luci.utility.webserver.WebServer;
 import edu.uci.ics.luci.utility.webserver.WebUtil;
 
 public class HandlerVersionTest {
-	
-	private static int testPort = 9020;
-	private static synchronized int testPortPlusPlus(){
-		int x = testPort;
-		testPort++;
-		return(x);
-	}
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
@@ -72,9 +64,11 @@ public class HandlerVersionTest {
 
 	@Before
 	public void setUp() throws Exception {
-		int port = testPortPlusPlus();
+		int port = HandlerAbstractTest.testPortPlusPlus();
 		boolean secure = false;
 		ws = HandlerAbstractTest.startAWebServerSocket(Globals.getGlobals(),port,secure);
+		ws.getRequestDispatcher().updateRequestHandlerRegistry("",new HandlerVersion(Globals.getGlobals().getSystemVersion()));
+		ws.getRequestDispatcher().updateRequestHandlerRegistry("version",new HandlerVersion(Globals.getGlobals().getSystemVersion()));
 	}
 
 	@After

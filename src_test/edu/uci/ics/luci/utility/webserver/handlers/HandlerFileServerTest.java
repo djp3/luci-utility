@@ -43,12 +43,7 @@ import edu.uci.ics.luci.utility.webserver.WebUtil;
 
 public class HandlerFileServerTest {
 	
-	private static int testPort = 9020;
-	private static synchronized int testPortPlusPlus(){
-		int x = testPort;
-		testPort++;
-		return(x);
-	}
+
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
@@ -68,7 +63,7 @@ public class HandlerFileServerTest {
 
 	@Before
 	public void setUp() throws Exception {
-		int port = testPortPlusPlus();
+		int port = HandlerAbstractTest.testPortPlusPlus();
 		boolean secure = false;
 		ws = HandlerAbstractTest.startAWebServerSocket(Globals.getGlobals(),port,secure);
 	}
@@ -83,9 +78,15 @@ public class HandlerFileServerTest {
 		
 		String responseString = null;
 		try {
-			HashMap<String, String> params = new HashMap<String, String>();
+			HandlerAbstract handler = new HandlerFileServer(edu.uci.ics.luci.utility.Globals.class,"/www_test/");
+			ws.getRequestDispatcher().updateRequestHandlerRegistry(null,handler);
+			
+			handler = new HandlerVersion(Globals.getGlobals().getSystemVersion());
+			ws.getRequestDispatcher().updateRequestHandlerRegistry("",handler);
 
-			responseString = WebUtil.fetchWebPage("http://localhost:" + ws.getInputChannel().getPort() + "/", false, params, 30 * 1000);
+			HashMap<String, String> params = new HashMap<String, String>();
+			
+			responseString = WebUtil.fetchWebPage("http://localhost:" + ws.getInputChannel().getPort() + "/index.html", false, params, 30 * 1000);
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 			fail("Bad URL");
@@ -98,9 +99,6 @@ public class HandlerFileServerTest {
 		
 
 	}
-
-
-
 	
 
 }

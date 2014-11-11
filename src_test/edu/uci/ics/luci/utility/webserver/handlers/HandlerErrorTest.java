@@ -46,13 +46,6 @@ import edu.uci.ics.luci.utility.webserver.WebUtil;
 
 public class HandlerErrorTest {
 	
-	private static int testPort = 9020;
-	private static synchronized int testPortPlusPlus(){
-		int x = testPort;
-		testPort++;
-		return(x);
-	}
-	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
 		Globals.setGlobals(new GlobalsTest());
@@ -71,7 +64,7 @@ public class HandlerErrorTest {
 
 	@Before
 	public void setUp() throws Exception {
-		int port = testPortPlusPlus();
+		int port = HandlerAbstractTest.testPortPlusPlus();
 		boolean secure = false;
 		ws = HandlerAbstractTest.startAWebServerSocket(Globals.getGlobals(),port,secure);
 	}

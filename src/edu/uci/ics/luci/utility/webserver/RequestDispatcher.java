@@ -219,6 +219,10 @@ public class RequestDispatcher implements Runnable{
 		return this.requestHandlerRegistry.size();
 	}
 	
+	public synchronized void updateRequestHandlerRegistry(String restCommand, HandlerAbstract handler){
+		this.requestHandlerRegistry.put(restCommand, handler);
+	}
+	
 	public synchronized int getRequestHandlersSize(Class<? extends HandlerAbstract> key){
 		return requestHandlers.get(key).size();
 	}

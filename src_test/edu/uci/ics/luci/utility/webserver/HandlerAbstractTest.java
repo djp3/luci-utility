@@ -51,6 +51,12 @@ public class HandlerAbstractTest {
 	public void tearDown() throws Exception {
 	}
 	
+	private static int testPort = 9020;
+	public static synchronized int testPortPlusPlus(){
+		int x = testPort;
+		testPort++;
+		return(x);
+	}
 
 	public static WebServer startAWebServerSocket(Globals globals,int port,boolean secure) {
 		try {
