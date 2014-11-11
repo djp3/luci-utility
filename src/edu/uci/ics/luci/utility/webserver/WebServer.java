@@ -161,7 +161,10 @@ public class WebServer implements Runnable,Quittable{
 		this.webServer = webServer;
 	}
 
-	public WebServer(RequestDispatcher requestDispatcher,int port,boolean secure,AccessControl accessControl){
+	public WebServer(InputChannel inputChannel, RequestDispatcher requestDispatcher,int port,boolean secure,AccessControl accessControl){
+		if(inputChannel == null){
+			throw new InvalidParameterException("The Input Channel can't be null");
+		}
 		if(requestDispatcher == null){
 			throw new InvalidParameterException("The Request Dispatcher can't be null");
 		}
