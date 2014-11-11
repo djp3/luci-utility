@@ -25,19 +25,10 @@ import java.io.IOException;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.security.GeneralSecurityException;
 import java.security.InvalidParameterException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import javax.net.ServerSocketFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLServerSocketFactory;
-import javax.net.ssl.X509KeyManager;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -74,11 +65,8 @@ public class WebServer implements Runnable,Quittable{
 	static private CalendarCache calendarCache = new CalendarCache(CalendarCache.TZ_GMT);
 	
 	private long startTime = System.currentTimeMillis();
-	private Date startDate = new Date();
 	private long count = 0;
 
-	private int port = DEFAULT_PORT;
-	private Boolean secure = null;
 	Thread webServer = null;
 
 	ExecutorService threadExecutor = null;
@@ -125,16 +113,16 @@ public class WebServer implements Runnable,Quittable{
 		return startTime;
 	}
 	
-	public String getLaunchDate(){
-		return startDate.toString();
-	}
-
 	public long getTotalRequests() {
 		return count;
 	}
 	
 	public InputChannel getInputChannel(){
 		return inputChannel;
+	}
+	
+	public RequestDispatcher getRequestDispatcher(){
+		return requestDispatcher;
 	}
 	
 	
@@ -179,46 +167,7 @@ public class WebServer implements Runnable,Quittable{
 			this.accessControl.setBadGuyTest(new ArrayList<String>());
 		}
 		
-		try{
-			if(inputChannel.getSecure()){
-				SSLContext sctx1 = null;
-				try{
-					//to make the keystore example
-					// keytool -keysize 2048 -genkey -alias swayr.com -keyalg RSA -keystore ./mySrvKeystore -validity 3650
-					// keytool -import -alias cross -keystore ./mySrvKeystore  -trustcacerts -file ./temp/gd_cross_intermediate.crt 
-					// keytool -import -alias intermed -keystore ./mySrvKeystore -trustcacerts -file ./temp/gd_intermediate.crt 
-	
-					// keytool -export -alias swayr.com -keystore ./mySrvKeystore -rfc -file server.cer
-					// keytool -import -alias swayr.com -file server.cer -keystore ./myClientKeystore
-					sctx1 = SSLContext.getInstance("SSLv3");
-					sctx1.init(new X509KeyManager[] { 
-		        			new MyKeyManager(
-		        					System.getProperty("javax.net.ssl.keyStore"),
-		        					System.getProperty("javax.net.ssl.keyStorePassword").toCharArray(),
-		        					System.getProperty("edu.uci.ics.luci.webserver.Alias")
-		        			)
-		        			}
-					,null,null);
-				} catch (NoSuchAlgorithmException e) {
-					getLog().fatal("I'm not into this error:\n"+e);
-				} catch (KeyManagementException e) {
-					getLog().fatal("Problem managing keys:\n"+e);
-				} catch (GeneralSecurityException e) {
-					getLog().fatal("Security Exception:\n"+e);
-				}
-				
-				//SSLServerSocketFactory ssocketFactory = (SSLServerSocketFactory) sctx1.getServerSocketFactory();
-				ServerSocketFactory ssocketFactory = SSLServerSocketFactory.getDefault();
-				serverSoc = ssocketFactory.createServerSocket(port);
-				serverSoc.setSoTimeout(1000);
-			}
-			else{
-				serverSoc = new ServerSocket(port);
-				serverSoc.setSoTimeout(1000);
-			}
-		} catch (IOException e) {
-			getLog().fatal(e.toString());
-		}
+		serverSoc = inputChannel.getServerSocket();
 		
 		setWebServer(new Thread(this));
 		getWebServer().setName("WebServer:"+((Globals.getGlobals().isTesting())?"testing":"not testing"));
