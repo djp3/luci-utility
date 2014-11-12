@@ -4,7 +4,7 @@ certificate authority.
 
 If you want to do this for production, then you need to get your ISP (like
 GoDaddy) to sign your csr.  Then you need to import their chain of certificates
-in to your keystore instead. You can skip everything on the linux box.
+in to your keystore instead. You can skip everything on the linux box. Some hints at the end.
 
 I followed http://www.zytrax.com/tech/survival/ssl.html#root-ca "Method 3" to create a self-signed root certificate:
 	1) logged into a linux box
@@ -81,3 +81,24 @@ I followed http://www.zytrax.com/tech/survival/ssl.html#root-ca "Method 3" to cr
 				password was "password"
 	13) Then I restored the /etc/ssl/openssl.cnf on my linux box
 	14) The truststore and keystore were then usable by the Java code to execute a https connection
+	
+	
+	
+Hints for setting up a production environment:	
+	I was in the middle of trying to do the certificates and I'm trying to get the keystore to work with a Go Daddy certificate.
+	All the files that start with "gd" came after gd signed my request
+	
+	I was using the instructions on this page
+		http://weblogs.java.net/blog/kalali/archive/2010/03/01/how-prepare-and-install-godaddy-ssl-certificate-glassfish-v3
+
+	These are some relevant commands that I issued:
+
+	keytool -keysize 4096 -genkey -alias swayr.com -keyalg RSA -keystore ./mySrvKeystore -validity 3650
+	keytool -certreq -alias swayr.com -keystore ./mySrvKeystore  -file server.cer 
+	keytool -import -alias root -keystore ./mySrvKeystore -trustcacerts -file temp/gd_bundle.crt 
+	keytool -import -alias cross -keystore ./mySrvKeystore  -trustcacerts -file ./temp/gd_cross_intermediate.crt 
+	keytool -import -alias intermed -keystore ./mySrvKeystore -trustcacerts -file ./temp/gd_intermediate.crt 
+	keytool -import -alias swayr.com -keystore ./mySrvKeystore -trustcacerts -file temp/swayr.com.crt 
+
+
+	
