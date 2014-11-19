@@ -27,8 +27,10 @@ import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 
+import org.apache.http.client.utils.URIBuilder;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -37,8 +39,6 @@ import org.junit.Test;
 
 import edu.uci.ics.luci.utility.Globals;
 import edu.uci.ics.luci.utility.GlobalsTest;
-import edu.uci.ics.luci.utility.webserver.HandlerAbstract;
-import edu.uci.ics.luci.utility.webserver.HandlerAbstractTest;
 import edu.uci.ics.luci.utility.webserver.WebServer;
 import edu.uci.ics.luci.utility.webserver.WebUtil;
 
@@ -95,13 +95,18 @@ public class HandlerFileServerSecureTest {
 			handler = new HandlerVersion(Globals.getGlobals().getSystemVersion());
 			ws.getRequestDispatcher().updateRequestHandlerRegistry("",handler);
 
-			HashMap<String, String> params = new HashMap<String, String>();
-			
-			responseString = WebUtil.fetchWebPage("https://localhost:" + ws.getInputChannel().getPort() + "/index.html", false, params, 30 * 1000);
+			URIBuilder uriBuilder = new URIBuilder()
+									.setScheme("https")
+									.setHost("localhost")
+									.setPort(ws.getInputChannel().getPort())
+									.setPath("/index.html");
+			responseString = WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
 		} catch (MalformedURLException e) {
 			fail("Bad URL\n"+e);
 		} catch (IOException e) {
 			fail("IO Exception\n"+e);
+		} catch (URISyntaxException e) {
+			fail("URISyntaxException\n"+e);
 		}
 		
 		assertTrue(responseString.contains("<h1>This is a test html file</h1>"));

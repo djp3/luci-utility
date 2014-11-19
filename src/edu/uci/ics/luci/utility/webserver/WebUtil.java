@@ -30,22 +30,47 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLConnection;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLSession;
-
-import org.apache.commons.codec.binary.Base64;
+import org.apache.http.HeaderElement;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.HttpResponseException;
+import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLContextBuilder;
+import org.apache.http.conn.ssl.TrustStrategy;
+import org.apache.http.entity.ContentType;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicHeaderElementIterator;
+import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import edu.uci.ics.luci.utility.Globals;
+import edu.uci.ics.luci.utility.datastructure.Pair;
 
 public class WebUtil {
 	
@@ -148,298 +173,303 @@ public class WebUtil {
 	
 
 	
-	/**
-	 * Set a header for basic authentication login.
-	 *
-	 * @param username
-	 * @param password
-	 * @param connection
-	 */
-	
-	public static void setBasicAuthentication(String username, String password,URLConnection connection)
-	{
-		assert ((username != null) && (password != null)) : "Need name and password for this method";
-	
-		String userPassword = username + ":" + password;
-		String encoding = Base64.encodeBase64String(userPassword.getBytes());
-	
-		connection.setRequestProperty("Authorization", "Basic " + encoding);
-	}
-	
 	
 	/**
-	 * Fetch a web page's contents. Note that this will change all line breaks
-	 * into system line breaks!
-	 *
-	 * @param uri
-	 *            The web-page (or file) to fetch. This method can handle
-	 *            permanent redirects, but not javascript or meta redirects.
-	 * @param authenticate
-	 * 	 		  True if basic authentication should be used.  In which case vars needs to have
-	 *            an entry for "username" and "password".           
-	 * @param vars
-	 * 			  A Map of params to be sent on the uri. "username" and "password" is removed before
-	 *            calling the uri.           
-	 * @param timeOutMilliSecs
-	 *            The read time out in milliseconds. Zero is not allowed. Note
-	 *            that this is not the timeout for the method call, but only for
-	 *            the connection. The method call may take longer.
-	 * @return The full text of the web page
-	 *
-	 * @throws IOException 
-	 * @throws MalformedURLException 
-	 */
-	
-	public static String fetchWebPage(String uri, boolean authenticate, Map<String, String> vars, int timeOutMilliSecs) throws  MalformedURLException, IOException
-	{
-		return fetchWebPage(uri, authenticate, vars, timeOutMilliSecs, null,null);
-	}
-
-
-
-	/**
-	 * Fetch a web page's contents. Note that this will change all line breaks
-	 * into system line breaks!
+	 *	REST Request: Fetch a data from the internet over a socket using http 
 	 * 
-	 * @param uri
-	 *            The web-page (or file) to fetch. This method can handle
-	 *            permanent redirects, but not javascript or meta redirects.
+	 * @param protocolScheme
+	 *            "http" or "https" are likely values
+	 * @param host
+	 *            "www.cnn.com", "localhost" etc.
+	 * @param port
+	 *            80, 443, 9020, etc.
+	 * @param path
+	 *            "/", "/index.html", "/path/to/index.html"
+	 * @param uriParams
+	 *            These are uri encoded parameters as in "?a=foo"
+	 * @param sendHeaderFields
+	 *            These are sent in the HTTP header
+	 * @param receiveHeaderFields
+	 *            This is where we put headers that come back
 	 * @param authenticate
-	 *            True if basic authentication should be used. In which case
-	 *            vars needs to have an entry for "username" and "password".
-	 * @param vars
-	 *            A Map of params to be sent on the uri. "username" and
-	 *            "password" is removed before calling the uri.
+	 *            True if basic authentication should be used. In which case @param
+	 *            uriParams needs to have an entry for "username" and
+	 *            "password".
 	 * @param timeOutMilliSecs
-	 *            The read time out in milliseconds. Zero is not allowed. Note
-	 *            that this is not the timeout for the method call, but only for
-	 *            the connection. The method call may take longer.
-	 * @param headerFields
-	 *            TODO
-	 * @return The full text of the web page
-	 * 
+	 *            The read time out in milliseconds. Must be greater than 0
+	 * @return the data
 	 * @throws IOException
-	 * @throws MalformedURLException
+	 * @throws URISyntaxException
+	 * @throws NoSuchAlgorithmException 
+	 * @throws UnrecoverableKeyException 
+	 * @throws KeyManagementException 
 	 */
-
-	public static String fetchWebPage(String uri, boolean authenticate,
-			Map<String, String> vars, int timeOutMilliSecs,
+	public static String fetchWebPage(
+			URIBuilder uriBuilder,
 			Map<String, String> sendHeaderFields,
-			Map<String, List<String>> receiveHeaderFields)
-			throws MalformedURLException, IOException {
-		assert timeOutMilliSecs > 0;
+			final Map<String, List<String>> receiveHeaderFields,
+			Pair<String,String> username_password,
+			int timeOutMilliSecs) throws IOException, URISyntaxException {
 
-		/* Get authenticate information */
-		String username = null;
-		String password = null;
-		if (authenticate) {
-			if (vars != null) {
-				username = vars.get("username");
-				password = vars.get("password");
-				vars.remove("username");
-				vars.remove("password");
-			}
+		/* Deal with authentication */
+		CredentialsProvider credsProvider = new BasicCredentialsProvider();
+		if(username_password != null){
+			credsProvider.setCredentials(
+					new AuthScope(uriBuilder.getHost(), uriBuilder.getPort()),
+					new UsernamePasswordCredentials(username_password.getFirst(),username_password.getSecond()));
 		}
 
-		/* Build URL query */
-		StringBuffer local = new StringBuffer();
-		if(vars != null){
-			local.append("?");
-			for(Entry<String, String> e : vars.entrySet()){
-				if (e.getValue() == null)
-					continue;
-				local.append(encode(e.getKey()));
-				local.append("=");
-				local.append(encode(e.getValue()));
-				local.append("&");
+		// Make the URI
+		URI uri = uriBuilder.build();
+
+		// Set up the connection
+		CloseableHttpClient httpclient = null;
+		try {
+			// Set the timeouts
+			if (timeOutMilliSecs < 0) {
+				timeOutMilliSecs = 0;
 			}
-		}
-		uri += local.toString();
+			RequestConfig defaultRequestConfig = RequestConfig.custom()
+					.setSocketTimeout(timeOutMilliSecs)
+					.setConnectTimeout(timeOutMilliSecs)
+					.setConnectionRequestTimeout(timeOutMilliSecs)
+					.setStaleConnectionCheckEnabled(true).build();
 
-		// Setup a connection
-		final HttpURLConnection connection;
-		InputStream inStream = null;
-
-		connection = (HttpURLConnection) new URL(uri).openConnection();
-		if(connection instanceof HttpsURLConnection){
-			((HttpsURLConnection) connection).setHostnameVerifier(new HostnameVerifier() {
-				public boolean verify(String arg0, SSLSession arg1) {
-					if(arg0.equals("localhost")){
+			if (Globals.getGlobals().isTesting()) {
+				// Allow the remote domain to not match the remote certificate
+				// when testing or trust the certificate
+				SSLContextBuilder builder = new SSLContextBuilder();
+			    builder.loadTrustMaterial(null, new TrustStrategy() {
+					@Override
+					public boolean isTrusted(
+							java.security.cert.X509Certificate[] chain,
+							String authType)
+							throws java.security.cert.CertificateException {
 						return true;
 					}
-					else{
-						throw new RuntimeException("Unexpected certificate mismatch, host:"+arg0+"\nSession:"+arg1.toString());
+			    });
+			    SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory( builder.build(),SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+				httpclient = HttpClients
+						.custom()
+						.setHostnameVerifier( SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER)
+						.setSSLSocketFactory(sslsf)
+						.setDefaultRequestConfig(defaultRequestConfig)
+						.setDefaultCredentialsProvider(credsProvider).build();
+			} else {
+				httpclient = HttpClients.custom()
+						.setDefaultRequestConfig(defaultRequestConfig)
+						.setDefaultCredentialsProvider(credsProvider).build();
+			}
+
+			HttpGet httpget = new HttpGet(uri);
+
+			/* Add Header Fields if provided */
+			if (sendHeaderFields != null) {
+				for (Entry<String, String> p : sendHeaderFields.entrySet()) {
+					httpget.setHeader(p.getKey(), p.getValue());
+				}
+			}
+
+			/* Set up a call back for the response */
+			ResponseHandler<String> rh = new ResponseHandler<String>() {
+				@Override
+				public String handleResponse(final HttpResponse response)
+						throws ClientProtocolException, IOException {
+					StatusLine statusLine = response.getStatusLine();
+					HttpEntity entity = response.getEntity();
+
+					if (statusLine.getStatusCode() >= 300) {
+						throw new HttpResponseException(
+								statusLine.getStatusCode(),
+								statusLine.getReasonPhrase());
+					}
+
+					if (entity == null) {
+						throw new ClientProtocolException(
+								"Response contains no content");
+					} else {
+
+						if (receiveHeaderFields != null) {
+							BasicHeaderElementIterator hit = new BasicHeaderElementIterator(
+									response.headerIterator());
+							while (hit.hasNext()) {
+								HeaderElement elem = hit.nextElement();
+								List<String> list = null;
+								if (receiveHeaderFields.containsKey(elem .getName())) {
+									list = receiveHeaderFields.get(elem .getName());
+									list.add(elem.getValue());
+								} else {
+									list = new ArrayList<String>();
+									list.add(elem.getValue());
+								}
+								receiveHeaderFields.put(elem.getName(), list);
+							}
+						}
+
+						ContentType contentType = ContentType
+								.getOrDefault(entity);
+						Charset charset = contentType.getCharset();
+						return EntityUtils.toString(entity, charset);
 					}
 				}
-			});
-		}
+			};
 
-		
+			return httpclient.execute(httpget, rh);
 
-		// Authenticate
-		if (authenticate) {
-			setBasicAuthentication(username, password, connection);
-		}
-
-		/* Set properties of connection */
-		// http://en.wikipedia.org/wiki/User_agent
-		connection .setRequestProperty("User-Agent", "Mozilla/4.0 (compatible;)");
-		if(sendHeaderFields != null){
-			for (Map.Entry<String, String> e : sendHeaderFields.entrySet()) {
-				connection.setRequestProperty(e.getKey(),e.getValue());
+		} catch (KeyManagementException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (KeyStoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			if (httpclient != null) {
+				httpclient.close();
 			}
 		}
-
-		connection.setDoInput(true);
-		connection.setReadTimeout(timeOutMilliSecs);
-
-		// Open a connection
-//		try {
-			inStream = connection.getInputStream();
-			if (receiveHeaderFields != null) {
-				receiveHeaderFields.clear();
-				receiveHeaderFields.putAll(connection.getHeaderFields());
-			}
-//		} catch (FileNotFoundException e1) { // This happens with 404s
-//			e1.printStackTrace();
-//			getLog().error("404 Error: Page not found " + uri);
-//		}
-	
-		// Read in the web page
-		String page = toString(inStream);
-
-		// Done
-		return page;
-	}
-	
-
-	
-	/**
-	 * Fetch a web page's header.
-	 *
-	 * @param uri
-	 *            The web-page (or file) to fetch. This method can handle
-	 *            permanent redirects, but not javascript or meta redirects.
-	 * @param authenticate
-	 * 	 		  True if basic authentication should be used.  In which case vars needs to have
-	 *            an entry for "username" and "password".           
-	 * @param vars
-	 * 			  A Map of params to be sent on the uri. "username" and "password" is removed before
-	 *            calling the uri.           
-	 * @param timeOutMilliSecs
-	 *            The read time out in milliseconds. Zero is not allowed. Note
-	 *            that this is not the timeout for the method call, but only for
-	 *            the connection. The method call may take longer.
-	 * @return The header of the web page
-	 *
-	 * @throws IOException 
-	 * @throws MalformedURLException 
-	 */
-	
-	public static Map<String, List<String>> fetchWebPageHeader(String uri, boolean authenticate, Map<String, String> vars, int timeOutMilliSecs) throws  MalformedURLException, IOException
-	{
-		return fetchWebPageHeader(uri, authenticate, vars, timeOutMilliSecs, null);
+		return null;
 	}
 
-
-
 	/**
-	 * Fetch a web page's header.
+	 *	Fetch the http header of a URI on the web.  This code should be almost exactly the same as
+	 *  fetchWebPage 
 	 * 
-	 * @param uri
-	 *            The web-page (or file) to fetch. This method can handle
-	 *            permanent redirects, but not javascript or meta redirects.
+	 * @param protocolScheme
+	 *            "http" or "https" are likely values
+	 * @param host
+	 *            "www.cnn.com", "localhost" etc.
+	 * @param port
+	 *            80, 443, 9020, etc.
+	 * @param path
+	 *            "/", "/index.html", "/path/to/index.html"
+	 * @param uriParams
+	 *            These are uri encoded parameters as in "?a=foo"
+	 * @param sendHeaderFields
+	 *            These are sent in the HTTP header
+	 * @param receiveHeaderFields
+	 *            This is where we put headers that come back
 	 * @param authenticate
-	 *            True if basic authentication should be used. In which case
-	 *            vars needs to have an entry for "username" and "password".
-	 * @param vars
-	 *            A Map of params to be sent on the uri. "username" and
-	 *            "password" is removed before calling the uri.
+	 *            True if basic authentication should be used. In which case @param
+	 *            uriParams needs to have an entry for "username" and
+	 *            "password".
 	 * @param timeOutMilliSecs
-	 *            The read time out in milliseconds. Zero is not allowed. Note
-	 *            that this is not the timeout for the method call, but only for
-	 *            the connection. The method call may take longer.
-	 * @param headerFields
-	 *            TODO
-	 * @return The header of the web page
-	 * 
+	 *            The read time out in milliseconds. Must be greater than 0
+	 * @return the data
 	 * @throws IOException
-	 * @throws MalformedURLException
+	 * @throws URISyntaxException
 	 */
+	public static String fetchWebPageHeader(
+			URIBuilder uriBuilder,
+			Map<String, String> sendHeaderFields,
+			final Map<String, List<String>> receiveHeaderFields,
+			Pair<String,String> username_password,
+			int timeOutMilliSecs) throws IOException, URISyntaxException {
 
-	public static Map<String, List<String>> fetchWebPageHeader(String uri, boolean authenticate,
-			Map<String, String> vars, int timeOutMilliSecs,
-			Map<String, String> sendHeaderFields)
-			throws MalformedURLException, IOException {
-		assert timeOutMilliSecs > 0;
-
-		/* Get authenticate information */
-		String username = null;
-		String password = null;
-		if (authenticate) {
-			if (vars != null) {
-				username = vars.get("username");
-				password = vars.get("password");
-				vars.remove("username");
-				vars.remove("password");
-			}
+		/* Deal with authentication */
+		CredentialsProvider credsProvider = new BasicCredentialsProvider();
+		if(username_password != null){
+			credsProvider.setCredentials(
+					new AuthScope(uriBuilder.getHost(), uriBuilder.getPort()),
+					new UsernamePasswordCredentials(username_password.getFirst(),username_password.getSecond()));
 		}
 
-		/* Build URL query */
-		StringBuffer local = new StringBuffer();
-		if(vars != null){
-			local.append("?");
-			for(Entry<String, String> e : vars.entrySet()){
-				if (e.getValue() == null)
-					continue;
-				local.append(encode(e.getKey()));
-				local.append("=");
-				local.append(encode(e.getValue()));
-				local.append("&");
-			}
-		}
-		uri += local.toString();
+		// Make the URI
+		URI uri = uriBuilder.build();
 
-		// Setup a connection
-		final HttpURLConnection connection;
-
-		connection = (HttpURLConnection) new URL(uri).openConnection();
-		connection.setRequestMethod("HEAD");
-
-		// Authenticate
-		if (authenticate) {
-			setBasicAuthentication(username, password, connection);
-		}
-
-		/* Set properties of connection */
-		// http://en.wikipedia.org/wiki/User_agent
-		connection .setRequestProperty("User-Agent", "Mozilla/4.0 (compatible;)");
-		if(sendHeaderFields != null){
-			for (Map.Entry<String, String> e : sendHeaderFields.entrySet()) {
-				connection.setRequestProperty(e.getKey(),e.getValue());
-			}
-		}
-
-		connection.setDoInput(true);
-		connection.setReadTimeout(timeOutMilliSecs);
-
-		// This is just here for debugging
-		/*
+		// Set up the connection
+		CloseableHttpClient httpclient = null;
 		try {
-			InputStream inStream = connection.getInputStream();
-			// Read in the web page
-			String page = toString(inStream);
-			if(page.equals("testing")){
-				
+			// Set the timeouts
+			if (timeOutMilliSecs < 0) {
+				timeOutMilliSecs = 0;
 			}
-		} catch (FileNotFoundException e1) { // This happens with 404s
-			e1.printStackTrace();
-			getLog().error("404 Error: Page not found " + uri);
-		}*/
-	
-		
-		// Done
-		return connection.getHeaderFields();
-	}
+			RequestConfig defaultRequestConfig = RequestConfig.custom()
+					.setSocketTimeout(timeOutMilliSecs)
+					.setConnectTimeout(timeOutMilliSecs)
+					.setConnectionRequestTimeout(timeOutMilliSecs)
+					.setStaleConnectionCheckEnabled(true).build();
 
+			if (Globals.getGlobals().isTesting()) {
+				// Allow the remote domain to not match the remote certificate
+				// when testing
+				httpclient = HttpClients
+						.custom()
+						.setHostnameVerifier(
+								SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER)
+						.setDefaultRequestConfig(defaultRequestConfig)
+						.setDefaultCredentialsProvider(credsProvider).build();
+			} else {
+				httpclient = HttpClients.custom()
+						.setDefaultRequestConfig(defaultRequestConfig)
+						.setDefaultCredentialsProvider(credsProvider).build();
+			}
+
+			HttpHead httphead = new HttpHead(uri);
+
+			/* Add Header Fields if provided */
+			if (sendHeaderFields != null) {
+				for (Entry<String, String> p : sendHeaderFields.entrySet()) {
+					httphead.setHeader(p.getKey(), p.getValue());
+				}
+			}
+
+			/* Set up a call back for the response */
+			ResponseHandler<String> rh = new ResponseHandler<String>() {
+				@Override
+				public String handleResponse(final HttpResponse response)
+						throws ClientProtocolException, IOException {
+					StatusLine statusLine = response.getStatusLine();
+					HttpEntity entity = response.getEntity();
+
+					if (statusLine.getStatusCode() >= 300) {
+						throw new HttpResponseException(
+								statusLine.getStatusCode(),
+								statusLine.getReasonPhrase());
+					}
+
+					if (entity == null) {
+						throw new ClientProtocolException(
+								"Response contains no content");
+					} else {
+
+						if (receiveHeaderFields != null) {
+							BasicHeaderElementIterator hit = new BasicHeaderElementIterator(
+									response.headerIterator());
+							while (hit.hasNext()) {
+								HeaderElement elem = hit.nextElement();
+								List<String> list = null;
+								if (receiveHeaderFields.containsKey(elem .getName())) {
+									list = receiveHeaderFields.get(elem .getName());
+									list.add(elem.getValue());
+								} else {
+									list = new ArrayList<String>();
+									list.add(elem.getValue());
+								}
+								receiveHeaderFields.put(elem.getName(), list);
+							}
+						}
+
+						ContentType contentType = ContentType
+								.getOrDefault(entity);
+						Charset charset = contentType.getCharset();
+						return EntityUtils.toString(entity, charset);
+					}
+				}
+			};
+
+			return httpclient.execute(httphead, rh);
+
+		} finally {
+			if (httpclient != null) {
+				httpclient.close();
+			}
+		}
+	}
+	
+			
 }
+
+	

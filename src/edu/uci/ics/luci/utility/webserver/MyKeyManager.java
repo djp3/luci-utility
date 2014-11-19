@@ -43,7 +43,7 @@ public class MyKeyManager implements X509KeyManager {
     private String alias;
     private char[] password;
 
-    MyKeyManager(String keyStoreFile, char[] password, String alias) throws IOException, GeneralSecurityException
+    public MyKeyManager(String keyStoreFile, char[] password, String alias) throws IOException, GeneralSecurityException
     {
     	InputStream stream = null;
     	try{

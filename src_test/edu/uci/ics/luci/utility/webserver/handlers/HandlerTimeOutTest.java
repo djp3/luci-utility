@@ -26,8 +26,10 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 
+import org.apache.http.client.utils.URIBuilder;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -36,8 +38,6 @@ import org.junit.Test;
 
 import edu.uci.ics.luci.utility.Globals;
 import edu.uci.ics.luci.utility.GlobalsTest;
-import edu.uci.ics.luci.utility.webserver.HandlerAbstract;
-import edu.uci.ics.luci.utility.webserver.HandlerAbstractTest;
 import edu.uci.ics.luci.utility.webserver.WebServer;
 import edu.uci.ics.luci.utility.webserver.WebUtil;
 
@@ -76,10 +76,16 @@ public class HandlerTimeOutTest {
 		
 		try {
 			ws.getRequestDispatcher().updateRequestHandlerRegistry(null,new HandlerTimeOut());
+			ws.getRequestDispatcher().updateRequestHandlerRegistry("/",new HandlerTimeOut());
 			
-			HashMap<String, String> params = new HashMap<String, String>();
+			new URIBuilder();
+			URIBuilder uriBuilder = new URIBuilder()
+										.setScheme("http")
+										.setHost("localhost")
+										.setPort(ws.getInputChannel().getPort())
+										.setPath("/");
+			WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
 
-			WebUtil.fetchWebPage("http://localhost:" + ws.getInputChannel().getPort() + "/", false, params, 5 * 1000);
 			fail("Shouldn't have returned cleanly");
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
@@ -89,6 +95,10 @@ public class HandlerTimeOutTest {
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail("IO Exception");
+		}
+		catch (URISyntaxException e) {
+			e.printStackTrace();
+			fail("URISyntaxException");
 		}
 
 	}

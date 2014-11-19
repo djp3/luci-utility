@@ -19,16 +19,17 @@
     along with Utilities.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package edu.uci.ics.luci.utility.webserver;
+package edu.uci.ics.luci.utility.webserver.handlers;
 
-import java.net.InetAddress;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import edu.uci.ics.luci.utility.datastructure.Pair;
-import edu.uci.ics.luci.utility.webserver.RequestDispatcher.HTTPRequest;
+import edu.uci.ics.luci.utility.webserver.input.request.Request;
+import edu.uci.ics.luci.utility.webserver.output.channel.Output;
+import edu.uci.ics.luci.utility.webserver.output.response.Response;
 
 
 public abstract class HandlerAbstract {
@@ -41,25 +42,8 @@ public abstract class HandlerAbstract {
 		return log;
 	}
 	
-	public static byte[] getContentTypeHeader_JSON(){
-		return "Access-Control-Allow_Origin:true\nContent-type:  application/json; charset=UTF-8".getBytes();
-	}
 
-	public static byte[] getContentTypeHeader_HTML(){
-		return "Content-type:  text/html; charset=UTF-8".getBytes();
-	}
 
-	public static byte[] getContentTypeHeader_CSS(){
-		return "Content-type:  text/css; charset=UTF-8".getBytes();
-	}
-
-	public static byte[] getContentTypeHeader_JS(){
-		return "Content-type:  text/javascript; charset=UTF-8".getBytes();
-	}
-
-	public static byte[] getContentTypeHeader_PNG(){
-		return "Content-type:  image/png; charset=UTF-8".getBytes();
-	}
 
 	public static byte[] getContentTypeHeader_REDIRECT_UNSPECIFIED() {
 		return "redirect ".getBytes();
@@ -85,26 +69,23 @@ public abstract class HandlerAbstract {
 	/**
 	 * This function should be overridden to actually do something in response to a REST call.  It should call oneMoreJobHandled, so
 	 * that getJobCounter is meaningful.
-	 * @param ip, The ip address from which the request came 
-	 * @param httpRequestType, The type of HTTP Request that was received, like: "GET" 
-	 * @param headers, the HTML headers in the request 
-	 * @param restFunction, the function that was in the URL that caused this code to be invoked, like: "index.html"
-	 * @param parameters, a map of key and value that was passed through the REST request
-	 * @return a pair where the first element is the content type and the second element are the output bytes to send back
+	 * @param icr, All the info about the incoming request
 	 */
-	public abstract Pair<byte[],byte[]> handle(InetAddress ip,HTTPRequest httpRequestType,Map<String, String> headers,String restFunction, Map<String, String> parameters);
-	
+	public abstract Response handle(Request icr,Output oc);
 	
 	/** This function is called to duplicate a Handler before being
 	 * dispatched to handle an incoming request.
 	 */
 	public abstract HandlerAbstract copy();
 
-	protected String wrapCallback(Map<String, String> parameters, String string) {
+	protected String wrapCallback(Map<String, Set<String>> parameters, String string) {
 		if(parameters != null){
-			String callback = parameters.get("callback");
+			Set<String> callback = parameters.get("callback");
 			if(callback != null){
-				return callback+"("+string+")";
+				for(String s:callback){
+					return s+"("+string+")";
+				}
+				return "unspecifiedCallback("+string+")";
 			}
 			else{
 				return string;

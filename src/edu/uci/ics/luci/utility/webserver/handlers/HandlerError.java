@@ -21,18 +21,15 @@
 
 package edu.uci.ics.luci.utility.webserver.handlers;
 
-import java.net.InetAddress;
-import java.util.Map;
-
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import edu.uci.ics.luci.utility.datastructure.Pair;
-import edu.uci.ics.luci.utility.webserver.HandlerAbstract;
-import edu.uci.ics.luci.utility.webserver.RequestDispatcher.HTTPRequest;
+import edu.uci.ics.luci.utility.webserver.input.request.Request;
+import edu.uci.ics.luci.utility.webserver.output.channel.Output;
+import edu.uci.ics.luci.utility.webserver.output.response.Response;
 
 public class HandlerError extends HandlerAbstract {
 	
@@ -56,28 +53,26 @@ public class HandlerError extends HandlerAbstract {
 		return new HandlerError(this.version);
 	}
 
-
-	/**
-	 * This returns the version number.
-	 * @param parameters a map of key and value that was passed through the REST request
-	 * @return a pair where the first element is the content type and the bytes are the output bytes to send back
-	 */
+	
 	@Override
-	public Pair<byte[], byte[]> handle(InetAddress ip, HTTPRequest httpRequestType, Map<String, String> headers, String restFunction, Map<String, String> parameters) {
-		Pair<byte[], byte[]> pair = null;
+	public Response handle(Request request, Output o) {
+		Response response = o.makeOutputChannelResponse();
 		
 		JSONObject ret = new JSONObject();
 		ret.put("version", version);
 		ret.put("error", "true");
 		JSONArray errors = new JSONArray();
-		errors.add("Unable to respond to query:"+restFunction);
+		errors.add("Unable to respond to query:"+request.getCommand());
 		ret.put("errors",errors);
 		
-		pair = new Pair<byte[],byte[]>(HandlerAbstract.getContentTypeHeader_JSON(),wrapCallback(parameters,ret.toString()).getBytes());
+		response.setStatus(Response.Status.OK);
+		response.setDataType(Response.DataType.JSON);
+		response.setBody(wrapCallback(request.getParameters(),ret.toString()));
 		
 		getLog().info("Version is "+version);
-		return pair;
+		return response;
 	}
+
 }
 
 

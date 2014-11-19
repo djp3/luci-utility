@@ -36,6 +36,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import edu.uci.ics.luci.utility.webserver.handlers.HandlerAbstract;
 import edu.uci.ics.luci.utility.webserver.handlers.HandlerVersion;
 
 public class RequestDispatcherTest {

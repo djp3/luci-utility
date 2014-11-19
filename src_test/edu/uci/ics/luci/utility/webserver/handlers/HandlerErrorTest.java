@@ -26,11 +26,13 @@ import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
 
+import org.apache.http.client.utils.URIBuilder;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -39,8 +41,6 @@ import org.junit.Test;
 
 import edu.uci.ics.luci.utility.Globals;
 import edu.uci.ics.luci.utility.GlobalsTest;
-import edu.uci.ics.luci.utility.webserver.HandlerAbstract;
-import edu.uci.ics.luci.utility.webserver.HandlerAbstractTest;
 import edu.uci.ics.luci.utility.webserver.WebServer;
 import edu.uci.ics.luci.utility.webserver.WebUtil;
 
@@ -80,15 +80,22 @@ public class HandlerErrorTest {
 		
 		String responseString = null;
 		try {
-			HashMap<String, String> params = new HashMap<String, String>();
-
-			responseString = WebUtil.fetchWebPage("http://localhost:" + ws.getInputChannel().getPort() + "/", false, params, 30 * 1000);
+			URIBuilder uriBuilder = new URIBuilder()
+									.setScheme("http")
+									.setHost("localhost")
+									.setPort(ws.getInputChannel().getPort())
+									.setPath("/");
+			responseString = WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 			fail("Bad URL");
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail("IO Exception");
+		}
+		catch (URISyntaxException e) {
+			e.printStackTrace();
+			fail("URISyntaxException");
 		}
 		//System.out.println(responseString);
 

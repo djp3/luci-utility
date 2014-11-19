@@ -19,7 +19,7 @@
     along with Utilities.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package edu.uci.ics.luci.utility.webserver;
+package edu.uci.ics.luci.utility.webserver.handlers;
 
 import static org.junit.Assert.fail;
 
@@ -31,7 +31,10 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 
 import edu.uci.ics.luci.utility.Globals;
-import edu.uci.ics.luci.utility.webserver.handlers.HandlerError;
+import edu.uci.ics.luci.utility.webserver.AccessControl;
+import edu.uci.ics.luci.utility.webserver.RequestDispatcher;
+import edu.uci.ics.luci.utility.webserver.WebServer;
+import edu.uci.ics.luci.utility.webserver.input.channel.socket.HTTPInputOverSocket;
 
 public class HandlerAbstractTest {
 
@@ -60,8 +63,10 @@ public class HandlerAbstractTest {
 
 	public static WebServer startAWebServerSocket(Globals globals,int port,boolean secure) {
 		try {
-			InputChannelSocket inputChannel = new InputChannelSocket(port,secure);
+			HTTPInputOverSocket inputChannel = new HTTPInputOverSocket(port,secure);
 			HashMap<String, HandlerAbstract> requestHandlerRegistry = new HashMap<String,HandlerAbstract>();
+			
+			// Null is a default Handler
 			requestHandlerRegistry.put(null,new HandlerError(Globals.getGlobals().getSystemVersion()));
 				
 			RequestDispatcher requestDispatcher = new RequestDispatcher(requestHandlerRegistry);
@@ -74,21 +79,5 @@ public class HandlerAbstractTest {
 		}
 		return null;
 	}
-
-	/*
-	@Test
-	public void testEncodeURIComponent() {
-		String orig ="\"A\" B ± \"";
-		String x = HandlerAbstract.encodeURIComponent(orig);
-		assertEquals("%22A%22%20B%20%C2%B1%20%22",x);
-		assertEquals(orig, HandlerAbstract.decodeURIComponent(x));
-		
-		orig ="! ' ( ) + ~";
-		x = HandlerAbstract.encodeURIComponent(orig);
-		assertEquals(orig, HandlerAbstract.decodeURIComponent(x));
-		
-	}
-	*/
-	
 
 }

@@ -26,6 +26,8 @@ import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeSet;
@@ -34,6 +36,7 @@ import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
 
+import org.apache.http.client.utils.URIBuilder;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -107,32 +110,33 @@ public class FetchTest {
 	}
 	
 	@Test
-	public void testSorting(){
+	public void testSorting() throws URISyntaxException{
 		
 		Fetch f = new Fetch();
-		Map<String,Long> urlMap = new HashMap<String,Long>();
+		Map<URI,Long> urlMap = new HashMap<URI,Long>();
 		
-		urlMap.put("http://localhost:1776",0L);
-		urlMap.put("http://localhost:1776",0L);
-		urlMap.put("http://localhost:1777",1L);
-		urlMap.put("http://localhost:1778",1L);
-		urlMap.put("http://localhost:1779",2L);
-		urlMap.put("http://localhost:1780",3L);
+		
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1776).build(),0L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1777).build(),1L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1778).build(),1L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1779).build(),2L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1780).build(),3L);
 		f.resetUrlPool(urlMap);
 		
 		for(int i = 0 ;i < 100; i++){
-			TreeSet<Pair<Long, String>> servers = new TreeSet<Pair<Long,String>>(f.getUrlPoolCopy());
-			assertTrue(servers.pollFirst().getSecond().contains("1776"));
-			assertTrue(servers.pollLast().getSecond().contains("1780"));
+			TreeSet<Pair<Long, URI>> servers = new TreeSet<Pair<Long,URI>>(f.getUrlPoolCopy());
+			assertTrue(servers.pollFirst().getSecond().toString().contains("1776"));
+			assertTrue(servers.pollLast().getSecond().toString().contains("1780"));
 		}
 	}
 	
 	
 	@Test
 	public void testFetch(){
-		Fetch f = new Fetch("https://raw.github.com");
 		try {
-			JSONObject j = f.fetchJSONObject("/djp3/p2p4java/production/bootstrapMasterList.json",false,null,30000);
+			Fetch f = new Fetch(new URIBuilder().setScheme("https").setHost("raw.github.com").build());
+		
+			JSONObject j = f.fetchJSONObject(new URIBuilder().setPath("/djp3/p2p4java/production/bootstrapMasterList.json"),null,null,null,30000);
 			JSONArray ja = (JSONArray) j.get("rendezvous_nodes");
 			String s = (String) ja.get(0);
 			assertTrue(s.contains("tcp"));
@@ -140,23 +144,25 @@ public class FetchTest {
 			fail(""+e);
 		} catch (IOException e) {
 			fail(""+e);
+		} catch (URISyntaxException e) {
+			fail(""+e);
 		}
 	}
 	
 	@Test
-	public void testFetchJSONWithBadServers(){
-		Map<String,Long> urlMap = new HashMap<String,Long>();
+	public void testFetchJSONWithBadServers() throws URISyntaxException{
+		Map<URI,Long> urlMap = new HashMap<URI,Long>();
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1776).build(),0L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1776).build(),0L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1777).build(),1L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1778).build(),1L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1779).build(),2L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1780).build(),3L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("raw.github.com").build(),4L);
 		
-		urlMap.put("http://localhost:1776",0L);
-		urlMap.put("http://localhost:1776",0L);
-		urlMap.put("http://localhost:1777",1L);
-		urlMap.put("http://localhost:1778",1L);
-		urlMap.put("http://localhost:1779",2L);
-		urlMap.put("http://localhost:1780",3L);
-		urlMap.put("https://raw.github.com",4L);
 		Fetch f = new Fetch(urlMap);
 		try {
-			JSONObject j = f.fetchJSONObject("/djp3/p2p4java/production/bootstrapMasterList.json",false,null,30000);
+			JSONObject j = f.fetchJSONObject(new URIBuilder().setPath("/djp3/p2p4java/production/bootstrapMasterList.json"),null,null,null,30000);
 			JSONArray ja = (JSONArray) j.get("rendezvous_nodes");
 			String s = (String) ja.get(0);
 			assertTrue(s.contains("tcp"));
@@ -164,28 +170,32 @@ public class FetchTest {
 			fail(""+e);
 		} catch (IOException e) {
 			fail(""+e);
+		} catch (URISyntaxException e) {
+			fail(""+e);
 		}
 	}
 	
 	
 	@Test
-	public void testFetchWebpageWithBadServers(){
-		Map<String,Long> urlMap = new HashMap<String,Long>();
+	public void testFetchWebpageWithBadServers() throws URISyntaxException{
+		Map<URI,Long> urlMap = new HashMap<URI,Long>();
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1776).build(),0L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1776).build(),0L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1777).build(),1L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1778).build(),1L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1779).build(),2L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1780).build(),3L);
+		urlMap.put(new URIBuilder().setScheme("https").setHost("github.com").build(),4L);
 		
-		urlMap.put("http://localhost:1776",0L);
-		urlMap.put("http://localhost:1776",0L);
-		urlMap.put("http://localhost:1777",1L);
-		urlMap.put("http://localhost:1778",1L);
-		urlMap.put("http://localhost:1779",2L);
-		urlMap.put("http://localhost:1780",3L);
-		urlMap.put("https://github.com",4L);
 		Fetch f = new Fetch(urlMap);
 		try {
-			String s = f.fetchWebPage("/djp3/p2p4java/blob/production/bootstrapMasterList.json",false,null,30000);
+			String s = f.fetchWebPage(new URIBuilder().setPath("/djp3/p2p4java/blob/production/bootstrapMasterList.json"),null,null,null,30000);
 			assertTrue(s.contains("tcp"));
 		} catch (MalformedURLException e) {
 			fail(""+e);
 		} catch (IOException e) {
+			fail(""+e);
+		} catch (URISyntaxException e) {
 			fail(""+e);
 		}
 	}

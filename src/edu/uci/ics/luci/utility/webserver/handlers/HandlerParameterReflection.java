@@ -21,6 +21,10 @@
 
 package edu.uci.ics.luci.utility.webserver.handlers;
 
+import java.util.Map.Entry;
+import java.util.Set;
+
+import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 
 import org.apache.logging.log4j.LogManager;
@@ -30,26 +34,26 @@ import edu.uci.ics.luci.utility.webserver.input.request.Request;
 import edu.uci.ics.luci.utility.webserver.output.channel.Output;
 import edu.uci.ics.luci.utility.webserver.output.response.Response;
 
-public class HandlerVersion extends HandlerAbstract {
+public class HandlerParameterReflection extends HandlerAbstract {
 	
 	private static transient volatile Logger log = null;
 	public static Logger getLog(){
 		if(log == null){
-			log = LogManager.getLogger(HandlerVersion.class);
+			log = LogManager.getLogger(HandlerParameterReflection.class);
 		}
 		return log;
 	}
 	
 	private String version;
 
-	public HandlerVersion(String version) {
+	public HandlerParameterReflection(String version) {
 		super();
 		this.version = version;
 	}
 
 	@Override
 	public HandlerAbstract copy() {
-		return new HandlerVersion(this.version);
+		return new HandlerParameterReflection(this.version);
 	}
 	
 	/**
@@ -65,11 +69,21 @@ public class HandlerVersion extends HandlerAbstract {
 		ret.put("version", version);
 		ret.put("error", "false");
 		
+		JSONObject parameters = new JSONObject();
+		
+		for(Entry<String, Set<String>> e:request.getParameters().entrySet()){
+			JSONArray array = new JSONArray();
+			for(String s:e.getValue()){
+				array.add(s);
+			}
+			parameters.put(e.getKey(), array);
+		}
+		ret.put("parameters", parameters);
+		
 		response.setStatus(Response.Status.OK);
 		response.setDataType(Response.DataType.JSON);
 		response.setBody(wrapCallback(request.getParameters(),ret.toString()));
 		
-		getLog().info("Version is "+version);
 		return response;
 	}
 }

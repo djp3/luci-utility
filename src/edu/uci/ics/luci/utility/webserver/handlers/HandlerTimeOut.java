@@ -21,15 +21,12 @@
 
 package edu.uci.ics.luci.utility.webserver.handlers;
 
-import java.net.InetAddress;
-import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import edu.uci.ics.luci.utility.datastructure.Pair;
-import edu.uci.ics.luci.utility.webserver.HandlerAbstract;
-import edu.uci.ics.luci.utility.webserver.RequestDispatcher.HTTPRequest;
+import edu.uci.ics.luci.utility.webserver.input.request.Request;
+import edu.uci.ics.luci.utility.webserver.output.channel.Output;
+import edu.uci.ics.luci.utility.webserver.output.response.Response;
 
 public class HandlerTimeOut extends HandlerAbstract {
 	
@@ -58,8 +55,8 @@ public class HandlerTimeOut extends HandlerAbstract {
 	 * @return a pair where the first element is the content type and the bytes are the output bytes to send back
 	 */
 	@Override
-	public Pair<byte[], byte[]> handle(InetAddress ip, HTTPRequest httpRequestType, Map<String, String> headers, String restFunction, Map<String, String> parameters) {
-		Pair<byte[], byte[]> pair = null;
+	public Response handle(Request request, Output o) {
+		Response response = o.makeOutputChannelResponse();
 		
 		timeOuter = new Thread(new Runnable(){
 			public void run() {
@@ -81,8 +78,11 @@ public class HandlerTimeOut extends HandlerAbstract {
 			}
 		}
 		
-		pair = new Pair<byte[],byte[]>(HandlerAbstract.getContentTypeHeader_JSON(),wrapCallback(parameters,"").getBytes());
-		return pair;
+		response.setStatus(Response.Status.OK);
+		response.setDataType(Response.DataType.JSON);
+		response.setBody(wrapCallback(request.getParameters(),""));
+		
+		return response;
 	}
 }
 

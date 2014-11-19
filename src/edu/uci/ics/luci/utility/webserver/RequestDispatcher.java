@@ -21,18 +21,11 @@
 
 package edu.uci.ics.luci.utility.webserver;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.IOException;
-import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minidev.json.JSONArray;
@@ -41,14 +34,20 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import edu.uci.ics.luci.utility.datastructure.Pair;
+import edu.uci.ics.luci.utility.webserver.handlers.HandlerAbstract;
+import edu.uci.ics.luci.utility.webserver.input.request.Request;
+import edu.uci.ics.luci.utility.webserver.output.channel.Output;
+import edu.uci.ics.luci.utility.webserver.output.response.Response;
 
 
 public class RequestDispatcher implements Runnable{
 	
+	/*
 	private static final byte[] EOL = {(byte)'\r', (byte)'\n' };
     protected static final String HTTP_OK = "200 OK";
     protected static final String HTTP_REDIRECT_UNSPECIFIED = "302 Found";
     protected static final String HTTP_NOT_FOUND = "404 Not Found";
+    */
 	
 	private static transient volatile Logger log = null;
 	public static Logger getLog(){
@@ -74,25 +73,22 @@ public class RequestDispatcher implements Runnable{
 	}
 	
 	
-	public enum HTTPRequest{GET,POST, UNKNOWN};
-	
 	private WebServer webServer = null;
-	private Queue<Socket> socketQueue = null;
+	private Queue<Pair<Request,Output>> requestQueue = null;
 	private Map<String, HandlerAbstract> requestHandlerRegistry = null;
 	private Map<Class<? extends HandlerAbstract>,List<HandlerAbstract>> requestHandlers = null;
 	private int numInstancesToStage = 10;
 	
-	private byte[] readBytes = null;
+
 	private int numLiveInstantiatingThreads;
 	private int numInstantiatingThreadsInvoked;
 	
 	public RequestDispatcher(Map<String,HandlerAbstract> requestHandlerRegistry){
 		super();
 		setRequestHandlerRegistry(requestHandlerRegistry);
-		readBytes = new byte[5120];
 		numLiveInstantiatingThreads = 0;
 		numInstantiatingThreadsInvoked = 0;
-		socketQueue = new ConcurrentLinkedQueue<Socket>();
+		requestQueue = new ConcurrentLinkedQueue<Pair<Request,Output>>();
 	}
 	
 	
@@ -235,11 +231,15 @@ public class RequestDispatcher implements Runnable{
 		return this.numInstantiatingThreadsInvoked;
 	}
 	
-	protected Socket getSocket() {
-		return socketQueue.poll();
+	protected Pair<Request, Output> getRequest() {
+		return requestQueue.poll();
 	}
-	protected void addSocket(Socket soc) {
-		socketQueue.add(soc);
+	protected void addRequest(Pair<Request, Output> request) {
+		requestQueue.add(request);
+	}
+	
+	public int numRequests(){
+		return requestQueue.size();
 	}
 	
 	public synchronized void setRequestHandlerRegistry(Map<String, HandlerAbstract> newRegistry){
@@ -255,487 +255,77 @@ public class RequestDispatcher implements Runnable{
 		this.numInstancesToStage = instancesToStage;
 	}
 
-	/*
-	 * Parse a name in the query string.
-	 */
-	static String parseName(String s, StringBuffer sb) {
-		
-		sb.setLength(0);
-		for (int i = 0; i < s.length(); i++) {
-			char c = s.charAt(i); 
-			switch (c) {
-				case '+':
-					sb.append(' ');
-					break;
-				case '%':
-					try {
-						sb.append((char) Integer.parseInt(s.substring(i+1, i+3),  16));
-						i += 2;
-					} catch (NumberFormatException e) {
-						// XXX
-						// need to be more specific about illegal arg
-						throw new IllegalArgumentException();
-					} catch (StringIndexOutOfBoundsException e) {
-						String rest  = s.substring(i);
-						sb.append(rest);
-						if (rest.length()==2)
-							i++;
-					}
-					break;
-				default:
-					sb.append(c);
-				break;
-			}
-		}
-		return sb.toString();
-	}
-
-	/**
-	    *
-	    * Parses a query string passed from the client to the
-	    * server and builds a <code>Map</code> object
-	    * with key-value pairs. 
-	    * The query string should be in the form of a string
-	    * packaged by the GET or POST method, that is, it
-	    * should have key-value pairs in the form <i>key=value</i>,
-	    * with each pair separated from the next by a &amp; character.
-	    *
-	    * <p>A key can appear more than once in the query string
-	    * with different values. However, the key appears only once in 
-	    * the map, with its value being rewritten in the case of multiple values sent
-	    * by the query string.
-	    * 
-	    * <p>The keys and values in the map are stored in their
-	    * decoded form, so
-	    * any + characters are converted to spaces, and characters
-	    * sent in hexadecimal notation (like <i>%xx</i>) are
-	    * converted to ASCII characters.
-	    *
-	    * @param s		a string containing the query to be parsed
-	    *
-	    * @return		a <code>Map</code> object built
-	    * 			from the parsed key-value pairs
-	    *
-	    * @exception IllegalArgumentException	if the query string 
-	    *						is invalid
-	    *
-	    */
-	
-	   public static Map<String, String> parseQueryString(String s) {
-	
-		   if (s == null) {
-			   throw new IllegalArgumentException("s is null");
-		   }
-		
-		   Map<String,String> ht = new HashMap<String,String>();
-		   StringBuffer sb = new StringBuffer();
-		   StringTokenizer st = new StringTokenizer(s, "&");
-		
-		   while (st.hasMoreTokens()) {
-			   String pair = st.nextToken();
-			   int pos = pair.indexOf('=');
-			   String key;
-			   String value;
-			   if (pos == -1) {
-				   key = pair;
-				   value = null;
-			   }
-			   else{
-				   key = RequestDispatcher.parseName(pair.substring(0, pos), sb);
-				   value = RequestDispatcher.parseName(pair.substring(pos+1, pair.length()), sb);
-			   }
-			   if (ht.containsKey(key)) {
-				   getLog().warn("http request had repeated keys");
-			   }
-			   
-			   ht.put(key, value);
-		   }
-		   return ht;
-	   }
 	   
 	   
+	  
 	   
-	   /**
-	    *
-	    * Parses a header string passed from the client to the
-	    * server and builds a <code>Map</code> object
-	    * with key-value pairs. 
-	    * The query string should be in the form of a header
-	    * packaged by the GET or POST method, that is, it
-	    * should have key-value pairs in the form <i>key:value</i>,
-	    * with each pair separated from the next by a newline character.
-	    *
-	    * <p>A key can appear more than once in the query string
-	    * with different values. However, the key appears only once in 
-	    * the map, with its value being rewritten in the case of multiple values sent
-	    * by the query string.
-	    * 
-	    *
-	    * @param s		a string containing the query to be parsed
-	    *
-	    * @return		a <code>Map</code> object built
-	    * 			from the parsed key-value pairs
-	    *
-	    * @exception IllegalArgumentException	if the query string 
-	    *						is invalid
-	    *
-	    */
-	
-	   public static Map<String, String> parseHeaderString(String s) {
-	
-		   if (s == null) {
-			   throw new IllegalArgumentException("s is null");
-		   }
-		
-		   Map<String,String> ht = new HashMap<String,String>();
-		   StringTokenizer st = new StringTokenizer(s, "\n");
-		
-		   while (st.hasMoreTokens()) {
-			   String pair = st.nextToken();
-			   int pos = pair.indexOf(':');
-			   String key;
-			   String value;
-			   if (pos == -1) {
-				   key = pair;
-				   value = null;
-			   }
-			   else{
-				   key = pair.substring(0, pos).trim();
-				   value =pair.substring(pos+1, pair.length()).trim();
-			   }
-			   if (ht.containsKey(key)) {
-				   getLog().warn("http request had repeated keys");
-			   }
-			   
-			   ht.put(key, value);
-		   }
-		   return ht;
-	   }
-
 	public void run() {
+		Pair<Request, Output> pair = null;
+		Request request = null;
+		Output output = null;
+		boolean error;
+		List<String> errors = null;
 		
-		BufferedInputStream bis = null;
-		BufferedOutputStream bos = null;
-		
-		int nBytes = -1;
-		boolean error = false;
-		List<String> errors = new ArrayList<String>();
-		byte[] contentTypeHeader;
-		byte[] outputBytes;
-		String request = "";
-		String requestParameters = "";
-		String header = "";
-		
-		Socket localSocket = getSocket();
-		
-		try {
-			incrementJobCounter();
-			getLog().debug("----------------------");
-			String source = localSocket.getInetAddress().toString();
-			getLog().info("Request Handler #:"+jobCounter+" handling request from " + source);
-
-			bis = new BufferedInputStream(localSocket.getInputStream());
-			nBytes = bis.read(readBytes, 0, 5120);
-			if(nBytes == -1){
-				request = "";
-				requestParameters = "";
-				header = "";
-			}
-			else{
-				while(nBytes != -1){
-					request += new String(readBytes, 0, nBytes);
-					if(bis.available() > 0){
-						nBytes = bis.read(readBytes,0,5120);
-					}
-					else{
-						nBytes = -1;
-					}
-				}
-				requestParameters = new String(request);
-				header = new String(request);
-			}
+		/* Go through the queue until it is empty */
+		while((pair = getRequest()) != null){
+			try{
+				request = pair.getFirst();
+				output = pair.getSecond();
 				
-			getLog().debug("First Part of Full Client Request = \n" + request);
-
-
-			/* figure out the HTTP method */
-			boolean getMethod = false;
-			boolean postMethod = false;
-			int indexGET = request.indexOf("GET");
-			int indexPOST = request.indexOf("POST");
-			int indexHTTP = -2;
-			if(indexGET != -1){
-				indexHTTP = request.indexOf("HTTP",indexGET);
-				if(indexGET < indexHTTP){
-					getMethod = true;
-				}
-			}
-			else if(indexPOST != -1){
-				indexHTTP = request.indexOf("HTTP",indexPOST);
-				if(indexPOST < indexHTTP){
-					postMethod = true;
-				}
-			}
+				error = false;
+				errors = new ArrayList<String>();
 				
-			if(indexHTTP == -1){
-				indexHTTP = request.length();
-			}
+				incrementJobCounter();
 				
+				HandlerAbstract handler = getHandler(request.getCommand());
 				
-			/* Capture the header */
-			int start = header.indexOf("\n",indexHTTP);
-			if(start == -1){
-				start = header.indexOf("\r",indexHTTP);
-			}
-					
-						
-			/*If we didn't get the whole post, try for the second piece */
-			if(start >=0 ){
-				header = header.substring(start).trim();
-			}
-			if(header.length() == 0){
-				nBytes = bis.read(readBytes, 0, 5120);
-				if(nBytes == -1){
-					header = "";
-				}
-				else{
-					header = new String(readBytes, 0, nBytes);
-				}
-				if(header.length()==0){
-					getLog().warn("No HTTP Headers from <"+source+"> url:<"+request+">");
-					header="";
-				}
-			}
-			header=header.trim();
-			Map<String, String> headers = RequestDispatcher.parseHeaderString(header);
-			//System.out.println("Testing for Header Parameters:\n"+header);
-
-			HandlerAbstract handler = null;
-			Map<String, String> parameters = null;
-				
-			/* Capture the parameters, which either start at a ? or if there is a space before the ? then there are no parameters*/
-			/* Find the root of the request */
-			start = request.indexOf("/");
-			int end = -1;
-			if(start != -1){
-				int q = request.indexOf("?",start);
-				int s = request.indexOf(" ",start);
-				if((q != -1) && (s != -1)){
-					if(q < s){
-						end = q;
-					}
-					else{
-						end = s;
-					}
-				}
-				else{
-					if( q == -1 ){
-						end = s;
-					}
-					if( s == -1 ){
-						end = q;
-					}
-				}
-			}
+				Response response = handler.handle(request,output);
 			
-			if((start >= 0) && (end >=0)){
-				request = request.substring(start+1, end).trim();
-				
-				/*Grab the parameters */
-				if(getMethod){
-					getLog().debug("URL Client Request (GET)= "+ request);
-					start = requestParameters.indexOf("?");
-					end = requestParameters.indexOf(" ",start);
-					if((start >=0 ) && (end >=0)){
-						requestParameters = requestParameters.substring(start+1,end).trim();
-					}
-					else{
-						getLog().warn("No HTTP (GET) parameters from <"+source+"> url:<"+request+">");
-						requestParameters="";
-					}
-						
-					requestParameters = requestParameters.trim();
-					parameters = RequestDispatcher.parseQueryString(requestParameters);
-						
-				}
-				else if(postMethod){
-					getLog().debug("URL Client Request (POST)= "+ request);
-					
-					start = requestParameters.indexOf("\r\n\r\n");
-					
-					/*If we didn't get the whole post, try for the second piece */
-					if(start >=0 ){
-						requestParameters = requestParameters.substring(start+2).trim();
-					}
-					if(requestParameters.length() == 0){
-						nBytes = bis.read(readBytes, 0, 5120);
-						requestParameters = new String(readBytes, 0, nBytes);
-						if(requestParameters.length()==0){
-							getLog().warn("No HTTP (POST) parameters from <"+source+"> url:<"+request+">");
-							requestParameters="";
-						}
-					}
-
-					requestParameters = requestParameters.trim();
-					parameters = RequestDispatcher.parseQueryString(requestParameters);
-				}
-				else{
-					getLog().warn("Unhandled HTTP method from <"+source+"> url:<"+request+">");
-					requestParameters="";
-				}
-				getLog().info("Request Handler #:"+(jobCounter)+" handling <"+request+"("+requestParameters+")>");
-			
-				if(parameters != null){
-					getLog().debug("Parameters"+parameters.toString());
-				}
-					
-				handler = getHandler(request);
-					
-			}
-				
-			if(handler != null){
-				HTTPRequest httpRequestType;
-				if(getMethod){
-					httpRequestType = HTTPRequest.GET;
-				}
-				else if(postMethod){
-					httpRequestType = HTTPRequest.POST;
-				}
-				else{
-					httpRequestType = HTTPRequest.UNKNOWN;
-				}
-				Pair<byte[], byte[]> handle = handler.handle(localSocket.getInetAddress(),httpRequestType,headers,request,parameters); 
-				if(handle != null){
-					if(	(handle.getFirst() != HandlerAbstract.getContentTypeHeader_REDIRECT_UNSPECIFIED()) &&
-							(handle.getFirst() != HandlerAbstract.getContentTypeHeader_PROXY())){
-						contentTypeHeader = handle.getFirst();
-						outputBytes = handle.getSecond();
-						if((contentTypeHeader == null) || (outputBytes == null)){
-							errors.add("Request Handler for "+request+" returned null response to these parameters "+parameters.toString());
+				if(response != null){
+					if( response.getStatus() == Response.Status.OK){
+						if(response.getBody() == null){
+							errors.add("Request Handler returned null response to this request\n"+request.toString());
 							error = true;
 						}
 						
 						if(error){
-							contentTypeHeader = HandlerAbstract.getContentTypeHeader_JSON();
+							response.setDataType(Response.DataType.JSON);
+							
 							JSONArray jsonArray = new JSONArray();
 							jsonArray.addAll(errors);
-							outputBytes=jsonArray.toString().getBytes();
+							response.setBody(jsonArray.toString());
 						}
-						//getLog().error("Checking what we are sending back:"+handle.getSecond().toString());
-						send_OKPage(localSocket,getWebServer().getHTTPServerHeader(),contentTypeHeader,outputBytes);
+						output.send_OK(response);
 					}
 					else{
-						String new_url = Arrays.toString(handle.getSecond());
-						if(handle.getFirst() == HandlerAbstract.getContentTypeHeader_REDIRECT_UNSPECIFIED()){
-							sendRedirect(new BufferedOutputStream(localSocket.getOutputStream()),HTTP_REDIRECT_UNSPECIFIED,new_url);
+						if(response.getStatus() == Response.Status.REDIRECT){
+							output.send_Redirect(response);
 						}
 						else{
-							sendProxy(localSocket,getWebServer().getHTTPServerHeader(),new_url);
+							output.send_Proxy(response);
 						}
 					}
 				}
 				else{
-					sendNotFound(new BufferedOutputStream(localSocket.getOutputStream()));
+					output.send_NotFound();
 				}
-			}
-		} catch (IOException e) {
-			getLog().error(e);
-		} catch (RuntimeException e) {
-			getLog().error("RuntimeException with this request:\n"+request+"\n"+e);
-			e.printStackTrace();
-		} finally {
-			try {
-				if(bis != null){
-					bis.close();
-				}
-			}
-			catch (Exception e) {
-				getLog().error(e);
-			}
-			finally{
+			} catch (RuntimeException e) {
+				getLog().error("RuntimeException with this request:\n"+request+"\n"+e);
+				e.printStackTrace();
+			} finally {
 				try{
-					if(bos != null){
-						bos.close();
+					if(output != null){
+						if(output.getSocket() != null){
+							output.getSocket().close();
+						}
 					}
 				}
 				catch (Exception e) {
 					getLog().error(e);
 				}
-				finally{
-					try{
-						if(localSocket != null){
-							localSocket.close();
-						}
-					}
-					catch (Exception e) {
-						getLog().error(e);
-					}
-				}
-			}
+			}	
 		}
 	}
 
-
-	private void send_OKPage(Socket localSocket, String httpServerHeader, byte[] contentTypeHeader, byte[] outputBytes) {
-		
-		try {
-			BufferedOutputStream bos = new BufferedOutputStream(localSocket.getOutputStream());
-			bos.write(("HTTP/1.0 "+ HTTP_OK).getBytes());
-			bos.write(EOL);
-			bos.write(("Server: "+httpServerHeader+":").getBytes());
-			bos.write(EOL);
-			bos.write(("Date: "+ (new Date())).getBytes());
-			bos.write(EOL);
-			bos.write(contentTypeHeader);
-			bos.write(EOL);
-			bos.write(EOL);
-			bos.write(outputBytes, 0, outputBytes.length);
-			bos.flush();
-		} catch (IOException e) {
-			getLog().error(e);
-		}
-	}
-
-	private void sendRedirect(BufferedOutputStream bos, String httpRedirectCode,String new_url) {
-		try {
-			bos.write(("HTTP/1.1 "+ httpRedirectCode).getBytes());
-			bos.write(EOL);
-			bos.write(("Location: "+new_url).getBytes());
-			bos.flush();
-		} catch (IOException e) {
-			getLog().error(e);
-		}
-	}
-	
-	public void sendProxy(Socket localSocket, String httpServerHeader,String new_url) {
-		try {
-			BufferedOutputStream bos = new BufferedOutputStream(localSocket.getOutputStream());
-			bos.write(("HTTP/1.0 "+ HTTP_OK).getBytes());
-			bos.write(EOL);
-			bos.write(("Server: "+ httpServerHeader +":").getBytes());
-			bos.write(EOL);
-			bos.write(("Date: "+ (new Date())).getBytes());
-			bos.write(EOL);
-			bos.write(HandlerAbstract.getContentTypeHeader_HTML());
-			bos.write(EOL);
-			bos.write(EOL);
-			String responseString = WebUtil.fetchWebPage(new_url, false, null, 30 * 1000);
-			bos.write(responseString.getBytes());
-			bos.flush();
-		} catch (IOException e) {
-			getLog().error(e);
-		}
-	}
-
-	private void sendNotFound(BufferedOutputStream bos) {
-		try {
-			bos.write(("HTTP/1.0 "+ HTTP_NOT_FOUND).getBytes());
-			bos.write(EOL);
-			bos.write(EOL);
-			bos.flush();
-		} catch (IOException e) {
-			getLog().error(e);
-		}
-	}
 	
 }

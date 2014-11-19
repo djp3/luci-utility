@@ -22,6 +22,7 @@
 package edu.uci.ics.luci.utility.webserver.handlers;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -29,6 +30,7 @@ import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 
+import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
 
@@ -44,7 +46,7 @@ import edu.uci.ics.luci.utility.GlobalsTest;
 import edu.uci.ics.luci.utility.webserver.WebServer;
 import edu.uci.ics.luci.utility.webserver.WebUtil;
 
-public class HandlerVersionTest {
+public class HandlerParameterReflectionTest {
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
@@ -67,8 +69,9 @@ public class HandlerVersionTest {
 		int port = HandlerAbstractTest.testPortPlusPlus();
 		boolean secure = false;
 		ws = HandlerAbstractTest.startAWebServerSocket(Globals.getGlobals(),port,secure);
-		ws.getRequestDispatcher().updateRequestHandlerRegistry("/",new HandlerVersion(Globals.getGlobals().getSystemVersion()));
-		ws.getRequestDispatcher().updateRequestHandlerRegistry("/version",new HandlerVersion(Globals.getGlobals().getSystemVersion()));
+		HandlerParameterReflection handler = new HandlerParameterReflection(Globals.getGlobals().getSystemVersion());
+		ws.getRequestDispatcher().updateRequestHandlerRegistry("/",handler);
+		ws.getRequestDispatcher().updateRequestHandlerRegistry("/reflect",handler);
 	}
 
 	@After
@@ -87,7 +90,10 @@ public class HandlerVersionTest {
 										.setScheme("http")
 										.setHost("localhost")
 										.setPort(ws.getInputChannel().getPort())
-										.setPath("/");
+										.setPath("/")
+										.setParameter("a","A")
+										.setParameter("b","B")
+										.setParameter("c","C");
 			responseString = WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
@@ -108,61 +114,31 @@ public class HandlerVersionTest {
 		try {
 			response = (JSONObject) JSONValue.parse(responseString);
 			assertEquals("false",response.get("error"));
-		} catch (ClassCastException e) {
-			fail("Bad JSON Response");
-		}
-
-	}
-
-
-
-	@Test
-	public void testWebServerVersion() {
-
-		
-		String responseString = null;
-		try {
-			new URIBuilder();
-			URIBuilder uriBuilder = new URIBuilder()
-										.setScheme("http")
-										.setHost("localhost")
-										.setPort(ws.getInputChannel().getPort())
-										.setPath("/");
-			responseString = WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-			fail("Bad URL");
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail("IO Exception");
-		}
-		catch (URISyntaxException e) {
-			e.printStackTrace();
-			fail("URISyntaxException");
-		}
-		//System.out.println(responseString);
-		
-		JSONObject response = null;
-		try {
-			response = (JSONObject) JSONValue.parse(responseString);
-			assertEquals("false",(String)response.get("error"));
 			
-			String answer  = (String) response.get("version");
-			assertEquals(Globals.getGlobals().getSystemVersion(),answer);
+			JSONObject parameters = (JSONObject) response.get("parameters");
+			JSONArray A = (JSONArray) parameters.get("a");
+			JSONArray B = (JSONArray) parameters.get("b");
+			JSONArray C = (JSONArray) parameters.get("c");
+			assertTrue(A.get(0) != null);
+			assertTrue(B.get(0) != null);
+			assertTrue(C.get(0) != null);
+			assertTrue(A.get(0).equals("A"));
+			assertTrue(B.get(0).equals("B"));
+			assertTrue(C.get(0).equals("C"));
 		} catch (ClassCastException e) {
 			fail("Bad JSON Response");
 		}
-
 		
-
 		responseString = null;
 		try {
-			new URIBuilder();
 			URIBuilder uriBuilder = new URIBuilder()
 										.setScheme("http")
 										.setHost("localhost")
 										.setPort(ws.getInputChannel().getPort())
-										.setPath("/version");
+										.setPath("/reflect")
+										.setParameter("a","A")
+										.setParameter("b","B")
+										.setParameter("c","C");
 			responseString = WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
@@ -175,21 +151,33 @@ public class HandlerVersionTest {
 			e.printStackTrace();
 			fail("URISyntaxException");
 		}
+		
 		//System.out.println(responseString);
 		
+
 		response = null;
 		try {
 			response = (JSONObject) JSONValue.parse(responseString);
-			assertEquals("false",(String)response.get("error"));
+			assertEquals("false",response.get("error"));
 			
-			String answer  = (String) response.get("version");
-			assertEquals(Globals.getGlobals().getSystemVersion(),answer);
+			JSONObject parameters = (JSONObject) response.get("parameters");
+			JSONArray A = (JSONArray) parameters.get("a");
+			JSONArray B = (JSONArray) parameters.get("b");
+			JSONArray C = (JSONArray) parameters.get("c");
+			assertTrue(A.get(0) != null);
+			assertTrue(B.get(0) != null);
+			assertTrue(C.get(0) != null);
+			assertTrue(A.get(0).equals("A"));
+			assertTrue(B.get(0).equals("B"));
+			assertTrue(C.get(0).equals("C"));
 		} catch (ClassCastException e) {
 			fail("Bad JSON Response");
 		}
 
-
 	}
+
+
+
 	
 
 }

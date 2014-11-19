@@ -22,7 +22,8 @@
 package edu.uci.ics.luci.utility.webclient;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -34,6 +35,7 @@ import java.util.TreeSet;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
 
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -64,7 +66,7 @@ public class Fetch {
 	/* Number of times the URL has failed and the URL like "localhost:1776" */
 	transient Object urlPoolLock = new Object();
 	/* A set of url's that provide equivalent information */
-	private TreeSet<Pair<Long,String>> urlPool = null;
+	private TreeSet<Pair<Long,URI>> urlPool = null;
 	
 
 	/*
@@ -75,17 +77,17 @@ public class Fetch {
     }*/
 	
 	public Fetch(){
-		urlPool = new TreeSet<Pair<Long,String>>();
+		urlPool = new TreeSet<Pair<Long,URI>>();
 	}
 	
 	/**
 	 * 
 	 * @param server, something like "https://foo.com"
 	 */
-	public Fetch(String server){
+	public Fetch(URI uri){
 		this();
-		TreeMap<String, Long> mapper = new TreeMap<String,Long>();
-		mapper.put(server,0L);
+		TreeMap<URI, Long> mapper = new TreeMap<URI,Long>();
+		mapper.put(uri,0L);
 		resetUrlPool(mapper);
 	}
 	
@@ -95,7 +97,7 @@ public class Fetch {
 	 * @param urlPool, a set of urls (String) mapped to a priority (Long).  The lower the priority the earlier the url is tried.
 	 *  If a url fails it's priority is incremented by one each time and the priorities are reordered. 
 	 */
-	public Fetch(Map<String,Long> urlPool){
+	public Fetch(Map<URI,Long> urlPool){
 		this();
 		resetUrlPool(urlPool);
 	}
@@ -107,14 +109,14 @@ public class Fetch {
 	 * a lower number.
 	 * @param urlMap
 	 */
-	protected void resetUrlPool(Map<String,Long> urlMap) {
+	protected void resetUrlPool(Map<URI,Long> urlMap) {
 		
 		/* Get a set ordered by success/priority */
 		synchronized(urlPoolLock){
 			
-			List<Entry<String, Long>> shuffler = new ArrayList<Entry<String,Long>>();
+			List<Entry<URI, Long>> shuffler = new ArrayList<Entry<URI,Long>>();
 			
-			for(Entry<String, Long> e: urlMap.entrySet()){
+			for(Entry<URI, Long> e: urlMap.entrySet()){
 				shuffler.add(e);
 			}
 			/* Randomly choose among equal priorities */
@@ -123,47 +125,47 @@ public class Fetch {
 			/*erase old URLs*/
 			urlPool.clear();
 			
-			for(Entry<String, Long> p:shuffler){
-				urlPool.add(new Pair<Long,String>(p.getValue(),p.getKey()));
+			for(Entry<URI, Long> p:shuffler){
+				urlPool.add(new Pair<Long,URI>(p.getValue(),p.getKey()));
 			}
 		}
 	}
 	
 	
 	
-	public TreeSet<Pair<Long,String>> getUrlPoolCopy(){
-		TreeSet<Pair<Long,String>> ret = null;
+	public TreeSet<Pair<Long,URI>> getUrlPoolCopy(){
+		TreeSet<Pair<Long,URI>> ret = null;
 		synchronized(urlPoolLock){
-			ret = new TreeSet<Pair<Long,String>>(urlPool);
+			ret = new TreeSet<Pair<Long,URI>>(urlPool);
 		}
 		return(ret);
 	}
 	
 	
 
-	private void incrementFailCount(String s) {
+	private void incrementFailCount(URI s) {
 		boolean found = false;
 		synchronized(urlPoolLock){
-			TreeSet<Pair<Long, String>> toDelete = new TreeSet<Pair<Long,String>>();
-			TreeSet<Pair<Long, String>> toAdd = new TreeSet<Pair<Long,String>>();
-			for(Pair<Long, String> p:urlPool){
+			TreeSet<Pair<Long, URI>> toDelete = new TreeSet<Pair<Long,URI>>();
+			TreeSet<Pair<Long, URI>> toAdd = new TreeSet<Pair<Long,URI>>();
+			for(Pair<Long, URI> p:urlPool){
 				if(p.getSecond().equals(s)){
 					Long x = p.getFirst();
 					toDelete.add(p);
 					if(!found){
-						toAdd.add(new Pair<Long,String>(x+1,s));
+						toAdd.add(new Pair<Long,URI>(x+1,s));
 						found = true;
 					}
 				}
 			}
-			for(Pair<Long, String> p:toDelete){
+			for(Pair<Long, URI> p:toDelete){
 				urlPool.remove(p);
 			}
-			for(Pair<Long,String> p:toAdd){
+			for(Pair<Long,URI> p:toAdd){
 				urlPool.add(p);
 			}
 			if(!found){
-				urlPool.add(new Pair<Long,String>(1L,s));
+				urlPool.add(new Pair<Long,URI>(1L,s));
 			}
 		}
 	}
@@ -171,44 +173,29 @@ public class Fetch {
 	
 	
 	
-	/**
-	 * Fetch a web page's contents. Note that this will change all line breaks
-	 * into system line breaks!  
-	 *
-	 * @param path
-	 *            The web-page (or file) to fetch. This method can handle
-	 *            permanent redirects, but not javascript or meta redirects. The path is everything after the ip address
-	 *            including the "/".  So the path for http:///www.cnn.com/media/index.html should be "/media/index.html"
-	 *            The server locations are taken from the pool
-	 * @param authenticate
-	 * 	 		  True if basic authentication should be used.  In which case vars needs to have
-	 *            an entry for "username" and "password".           
-	 * @param vars
-	 * 			  A Map of params to be sent on the uri. "username" and "password" is removed before
-	 *            calling the uri.           
-	 * @param timeOutMilliSecs
-	 *            The read time out in milliseconds. Zero is not allowed. Note
-	 *            that this is not the timeout for the method call, but only for
-	 *            the connection. The method call may take longer.
-	 * @return The full text of the web page
-	 *
-	 * @throws IOException 
-	 * @throws MalformedURLException 
-	 */
-	
-	public String fetchWebPage(String path, boolean authenticate, Map<String, String> vars, int timeOutMilliSecs) throws  MalformedURLException, IOException
-	{
+	public String fetchWebPage(
+			URIBuilder uriBuilder,
+			Map<String, String> sendHeaderFields,
+			final Map<String, List<String>> receiveHeaderFields,
+			Pair<String,String> username_password,
+			int timeOutMilliSecs) throws IOException, URISyntaxException {
+		
 		String responseString = null;
-		TreeSet<Pair<Long, String>> servers = new TreeSet<Pair<Long,String>>();
+		TreeSet<Pair<Long, URI>> servers = new TreeSet<Pair<Long,URI>>();
 		
 		synchronized(urlPoolLock){
 			servers.addAll(urlPool);
 		}
 		
 		while(servers.size()>0){
-			String s = servers.pollFirst().getSecond();
+			URI s = servers.pollFirst().getSecond();
 			try{
-				responseString = WebUtil.fetchWebPage(""+s+path, authenticate, vars, timeOutMilliSecs);
+				URIBuilder copy = new URIBuilder(uriBuilder.build());
+				copy.setScheme(s.getScheme());
+				copy.setHost(s.getHost());
+				copy.setPort(s.getPort());
+				responseString = WebUtil.fetchWebPage(copy,sendHeaderFields,receiveHeaderFields,
+						username_password,timeOutMilliSecs);
 				break;
 			}
 			catch(IOException e){
@@ -227,31 +214,17 @@ public class Fetch {
 	/**
 	 * Fetch a web page's contents. If the webpage errors out or fails to parse JSON it's considered an error. 
 	 *
-	 * @param path
-	 *            The URL to fetch. This method can handle
-	 *            permanent redirects, but not javascript or meta redirects. The path is everything after the ip address
-	 *            including the "/".  So the path for http:///www.cnn.com/media/index.html should be "/media/index.html"
-	 *            The server locations are taken from the pool
-	 * @param authenticate
-	 * 	 		  True if basic authentication should be used.  In which case vars needs to have
-	 *            an entry for "username" and "password".           
-	 * @param vars
-	 * 			  A Map of params to be sent on the uri. "username" and "password" is removed before
-	 *            calling the uri.           
-	 * @param timeOutMilliSecs
-	 *            The read time out in milliseconds. Zero is not allowed. Note
-	 *            that this is not the timeout for the method call, but only for
-	 *            the connection. The method call may take longer.
-	 * @return A JSON object from the URL
-	 *
-	 * @throws IOException 
-	 * @throws MalformedURLException 
 	 */
 	
-	public JSONObject fetchJSONObject(String path, boolean authenticate, Map<String, String> vars, int timeOutMilliSecs) throws  MalformedURLException, IOException 
-	{
+	public JSONObject fetchJSONObject(
+					URIBuilder uriBuilder,
+					Map<String, String> sendHeaderFields,
+					final Map<String, List<String>> receiveHeaderFields,
+					Pair<String,String> username_password,
+					int timeOutMilliSecs) throws IOException, URISyntaxException {
+				
 		JSONObject ret = null;
-		TreeSet<Pair<Long, String>> servers = new TreeSet<Pair<Long,String>>();
+		TreeSet<Pair<Long, URI>> servers = new TreeSet<Pair<Long,URI>>();
 		
 		synchronized(urlPoolLock){
 			servers.addAll(urlPool);
@@ -259,9 +232,15 @@ public class Fetch {
 		
 		
 		while(servers.size() > 0){
-			String s = servers.pollFirst().getSecond();
+			URI s = servers.pollFirst().getSecond();
 			try{
-				String responseString = WebUtil.fetchWebPage(""+s+path, authenticate, vars, timeOutMilliSecs);
+				URIBuilder copy = new URIBuilder(uriBuilder.build());
+				copy.setScheme(s.getScheme());
+				copy.setHost(s.getHost());
+				copy.setPort(s.getPort());
+				String responseString = WebUtil.fetchWebPage(copy,sendHeaderFields,receiveHeaderFields,
+								username_password,timeOutMilliSecs);
+				
 				if(responseString != null){
 					try{
 						ret = (JSONObject) JSONValue.parse(responseString);

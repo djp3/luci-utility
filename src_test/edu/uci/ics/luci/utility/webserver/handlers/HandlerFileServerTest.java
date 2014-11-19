@@ -26,8 +26,10 @@ import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 
+import org.apache.http.client.utils.URIBuilder;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -36,8 +38,6 @@ import org.junit.Test;
 
 import edu.uci.ics.luci.utility.Globals;
 import edu.uci.ics.luci.utility.GlobalsTest;
-import edu.uci.ics.luci.utility.webserver.HandlerAbstract;
-import edu.uci.ics.luci.utility.webserver.HandlerAbstractTest;
 import edu.uci.ics.luci.utility.webserver.WebServer;
 import edu.uci.ics.luci.utility.webserver.WebUtil;
 
@@ -81,18 +81,24 @@ public class HandlerFileServerTest {
 			HandlerAbstract handler = new HandlerFileServer(edu.uci.ics.luci.utility.Globals.class,"/www_test/");
 			ws.getRequestDispatcher().updateRequestHandlerRegistry(null,handler);
 			
-			handler = new HandlerVersion(Globals.getGlobals().getSystemVersion());
-			ws.getRequestDispatcher().updateRequestHandlerRegistry("",handler);
+			ws.getRequestDispatcher().updateRequestHandlerRegistry("/",handler);
 
-			HashMap<String, String> params = new HashMap<String, String>();
-			
-			responseString = WebUtil.fetchWebPage("http://localhost:" + ws.getInputChannel().getPort() + "/index.html", false, params, 30 * 1000);
+			URIBuilder uriBuilder = new URIBuilder()
+										.setScheme("http")
+										.setHost("localhost")
+										.setPort(ws.getInputChannel().getPort())
+										.setPath("/index.html");
+			responseString = WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 			fail("Bad URL");
 		} catch (IOException e) {
 			e.printStackTrace();
-			fail("IO Exception");
+			fail("IO Exception "+e);
+		}
+		catch (URISyntaxException e) {
+			e.printStackTrace();
+			fail("URISyntaxException");
 		}
 		
 		assertTrue(responseString.contains("<h1>This is a test html file</h1>"));

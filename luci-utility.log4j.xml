@@ -3,7 +3,7 @@
 	name="luci-utility.log4j configuration" packages="org.apache.logging.log4j.test"
 	monitorInterval="30">
 	<Filters>
-		<BurstFilter level="INFO" rate="16"/>
+		<BurstFilter level="DEBUG" rate="16"/>
 	</Filters>
 
 	<Appenders>

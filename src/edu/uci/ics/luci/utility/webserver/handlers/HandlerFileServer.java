@@ -23,16 +23,14 @@ package edu.uci.ics.luci.utility.webserver.handlers;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetAddress;
-import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import edu.uci.ics.luci.utility.datastructure.Pair;
-import edu.uci.ics.luci.utility.webserver.HandlerAbstract;
-import edu.uci.ics.luci.utility.webserver.RequestDispatcher.HTTPRequest;
+import edu.uci.ics.luci.utility.webserver.input.request.Request;
+import edu.uci.ics.luci.utility.webserver.output.channel.Output;
+import edu.uci.ics.luci.utility.webserver.output.response.Response;
 
 public class HandlerFileServer extends HandlerAbstract {
 	
@@ -72,42 +70,43 @@ public class HandlerFileServer extends HandlerAbstract {
 	 * @return a pair where the first element is the content type and the bytes are the output bytes to send back
 	 */
 	@Override
-	public Pair<byte[], byte[]> handle(InetAddress ip, HTTPRequest httpRequestType, Map<String, String> headers, String restFunction, Map<String, String> parameters) {
-		Pair<byte[], byte[]> pair = null;
-		byte[] ret = null;
-		byte[] type = null;
+	public Response handle(Request request, Output o) {
+		Response response = o.makeOutputChannelResponse();
+
+		String body = null;
 		
 		InputStream ios = null;
 		
-		String resource = resourcePrefix+restFunction;
+		String resource = resourcePrefix+request.getCommand();
 		ios = resourceBaseClass.getResourceAsStream(resource);
 		
 		try{
 			if(ios != null){
-				if(restFunction.endsWith(".css")){
-					ret = convertStreamToString(ios).getBytes();
-					type = HandlerAbstract.getContentTypeHeader_CSS();
+				if(request.getCommand().endsWith(".css")){
+					response.setDataType(Response.DataType.CSS);
+					body = convertStreamToString(ios);
 				}
-				else if(restFunction.endsWith(".png")){
-					ret = IOUtils.toByteArray(ios);
-					type = HandlerAbstract.getContentTypeHeader_PNG();
+				else if(request.getCommand().endsWith(".png")){
+					response.setDataType(Response.DataType.PNG);
+					body = IOUtils.toString(ios);
 				}
-				else if(restFunction.endsWith(".js")){
-					ret = convertStreamToString(ios).getBytes();
-					type = HandlerAbstract.getContentTypeHeader_JS();
+				else if(request.getCommand().endsWith(".js")){
+					response.setDataType(Response.DataType.JAVASCRIPT);
+					body = convertStreamToString(ios);
 				}else{
-					ret = convertStreamToString(ios).getBytes();
-					type = HandlerAbstract.getContentTypeHeader_HTML();
+					response.setDataType(Response.DataType.HTML);
+					body = convertStreamToString(ios);
 				}
 			}
 			else{
-				ret = ("Resource not found:"+resource).getBytes();
-				type = HandlerAbstract.getContentTypeHeader_HTML();
+				response.setDataType(Response.DataType.HTML);
+				body = ("Resource not found:"+resource);
 			}
-			pair = new Pair<byte[],byte[]>(type,ret);
+			response.setStatus(Response.Status.OK);
+			response.setBody(body);
 			
 		} catch (IOException e) {
-			getLog().error("Problem serving up content:"+restFunction+"\n"+e);
+			getLog().error("Problem serving up content:"+request.getCommand()+"\n"+e);
 		}finally{
 			try {
 				if(ios != null){
@@ -118,8 +117,7 @@ public class HandlerFileServer extends HandlerAbstract {
 			}
 		}
 		
-		
-		return pair;
+		return response;
 	}
 }
 
