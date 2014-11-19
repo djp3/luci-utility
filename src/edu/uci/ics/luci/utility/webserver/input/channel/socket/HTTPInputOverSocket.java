@@ -29,13 +29,11 @@ import org.apache.http.HttpServerConnection;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.DefaultBHttpServerConnectionFactory;
-import org.apache.http.protocol.HttpService;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import edu.uci.ics.luci.utility.datastructure.Pair;
-import edu.uci.ics.luci.utility.webserver.Channel.Protocol;
 import edu.uci.ics.luci.utility.webserver.MyKeyManager;
 import edu.uci.ics.luci.utility.webserver.input.channel.Input;
 import edu.uci.ics.luci.utility.webserver.input.request.Request;
@@ -55,8 +53,6 @@ public class HTTPInputOverSocket extends Input{
 	private int port;
 	private boolean secure;
 	private DefaultBHttpServerConnectionFactory connFactory;
-	private HttpService httpService;
-	
 
 
 	public HTTPInputOverSocket(int port, boolean secure){
