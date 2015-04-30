@@ -4,6 +4,18 @@
 	<groupId>edu.uci.ics.luci</groupId>
 	<artifactId>luci-utility</artifactId>
 	<version>0.0.10-SNAPSHOT</version>
+	<properties>
+		<sqlite4java.version>1.0.392</sqlite4java.version>
+		<!-- For Windows 64 bit: -->
+		<!-- <sqlite4java.binary>sqlite4java-win32-x64</sqlite4java.binary>-->
+		<!-- <sqlite4java.binary.type>dll</sqlite4java.binary.type> -->
+		<!-- For linux 64 bit: -->
+		<!-- <sqlite4java.binary>libsqlite4java-linux-amd64</sqlite4java.binary> -->
+		<!-- <sqlite4java.binary.type>so</sqlite4java.binary.type> -->
+		<!-- For Mac 64 bit: -->
+		<sqlite4java.binary>libsqlite4java-osx</sqlite4java.binary>
+		<sqlite4java.binary.type>dylib</sqlite4java.binary.type> 
+	</properties>
 	<build>
 		<sourceDirectory>src</sourceDirectory>
 		<resources>
@@ -23,11 +35,6 @@
 					<target>1.6</target>
 				</configuration>
 			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.1</version>
-			</plugin>
 		</plugins>
 	</build>
 	<dependencies>
@@ -40,11 +47,6 @@
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
 			<version>2.0.1</version>
-		</dependency>
-		<dependency>
-			<groupId>com.google.code.findbugs</groupId>
-			<artifactId>annotations</artifactId>
-			<version>3.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.google.code.findbugs</groupId>
@@ -85,6 +87,18 @@
 			<groupId>net.minidev</groupId>
 			<artifactId>json-smart</artifactId>
 			<version>1.2</version>
+		</dependency>
+		 <dependency>
+			<groupId>com.almworks.sqlite4java</groupId>
+			<artifactId>sqlite4java</artifactId>
+			<type>jar</type>
+			<version>${sqlite4java.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.almworks.sqlite4java</groupId>
+			<artifactId>${sqlite4java.binary}</artifactId>
+			<type>${sqlite4java.binary.type}</type>
+			<version>${sqlite4java.version}</version>
 		</dependency>
 	</dependencies>
 </project>
