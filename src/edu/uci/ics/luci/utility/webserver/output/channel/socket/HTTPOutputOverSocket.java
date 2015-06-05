@@ -119,18 +119,7 @@ public class HTTPOutputOverSocket extends Output{
 				getLog().error(e.toString());
 			}
 			finally{
-				if(conn != null){
-					try {
-						conn.flush();
-					} catch (IOException e) {
-					}
-					finally{
-						try {
-							conn.shutdown();
-						} catch (IOException e) {
-						}
-					}
-				}
+				closeConnection();
 			}
 		}
 	}
@@ -158,18 +147,7 @@ public class HTTPOutputOverSocket extends Output{
 				getLog().error(e.toString());
 			}
 			finally{
-				if(conn != null){
-					try {
-						conn.flush();
-					} catch (IOException e) {
-					}
-					finally{
-						try {
-							conn.shutdown();
-						} catch (IOException e) {
-						}
-					}
-				}
+				closeConnection();
 			}
 		}
 	}
@@ -196,25 +174,14 @@ public class HTTPOutputOverSocket extends Output{
 			getLog().error(e.toString());
 		}
 		finally{
-			if(conn != null){
-				try {
-					conn.flush();
-				} catch (IOException e) {
-				}
-				finally{
-					try {
-						conn.shutdown();
-					} catch (IOException e) {
-					}
-				}
-			}
+			closeConnection();
 		}
 	}
 	
 
 	@Override
-	public void send_NotFound() {
-		HttpResponse httpResponse = new BasicHttpResponse(HttpVersion.HTTP_1_1, HttpStatus.SC_NOT_FOUND, "Not Found") ;
+	public void send_Error() {
+		HttpResponse httpResponse = new BasicHttpResponse(HttpVersion.HTTP_1_1, HttpStatus.SC_NOT_FOUND, "Not Found - Internal Error") ;
 		try {
 			composeHeadersSingle(httpResponse,getServerHeaders());
 			httpResponse.setEntity(new StringEntity(""));
@@ -226,19 +193,42 @@ public class HTTPOutputOverSocket extends Output{
 			getLog().error(e.toString());
 		}
 		finally{
-			if(conn != null){
+			closeConnection();
+		}
+	}
+	
+	
+	public void closeConnection(){
+		if((conn != null) && (conn.isOpen())){
+			try {
+				conn.flush();
+			} catch (IOException e) {
+			}
+			finally{
 				try {
-					conn.flush();
+					conn.shutdown();
 				} catch (IOException e) {
-				}
-				finally{
-					try {
-						conn.shutdown();
-					} catch (IOException e) {
-					}
 				}
 			}
 		}
+	}
+	
+	public void closeSocket(){
+		if(socket != null && (!socket.isClosed())){
+			try {
+				socket.close();
+			} catch (IOException e) {
+			}
+		}
+	}
+	
+	
+	@Override
+	public void closeChannel(){
+		closeConnection();
+		conn = null;
+		closeSocket();
+		socket = null;
 	}
 
 }

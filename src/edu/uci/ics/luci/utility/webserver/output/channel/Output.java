@@ -11,7 +11,7 @@ public abstract class Output extends Channel{
 	public abstract void send_OK(Response response);
 	public abstract void send_Redirect(Response response);
 	public abstract void send_Proxy(Response response);
-	public abstract void send_NotFound();
+	public abstract void send_Error();
 	
 	public abstract Response makeOutputChannelResponse();
 	

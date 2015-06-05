@@ -63,6 +63,7 @@ import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeaderElementIterator;
 import org.apache.http.util.EntityUtils;
@@ -233,7 +234,8 @@ public class WebUtil {
 					.setSocketTimeout(timeOutMilliSecs)
 					.setConnectTimeout(timeOutMilliSecs)
 					.setConnectionRequestTimeout(timeOutMilliSecs)
-					.setStaleConnectionCheckEnabled(true).build();
+					.setStaleConnectionCheckEnabled(true)
+					.build();
 
 			if (Globals.getGlobals().isTesting()) {
 				// Allow the remote domain to not match the remote certificate
@@ -254,11 +256,15 @@ public class WebUtil {
 						.setHostnameVerifier( SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER)
 						.setSSLSocketFactory(sslsf)
 						.setDefaultRequestConfig(defaultRequestConfig)
-						.setDefaultCredentialsProvider(credsProvider).build();
+						.setDefaultCredentialsProvider(credsProvider)
+						.setRetryHandler(new DefaultHttpRequestRetryHandler(0,false))
+						.build();
 			} else {
 				httpclient = HttpClients.custom()
 						.setDefaultRequestConfig(defaultRequestConfig)
-						.setDefaultCredentialsProvider(credsProvider).build();
+						.setDefaultCredentialsProvider(credsProvider)
+						.setRetryHandler(new DefaultHttpRequestRetryHandler(0,false))
+						.build();
 			}
 
 			HttpGet httpget = new HttpGet(uri);

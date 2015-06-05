@@ -25,6 +25,8 @@ package edu.uci.ics.luci.utility;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 import org.junit.After;
@@ -37,7 +39,7 @@ public class GlobalsTest extends Globals {
 	
 	Random random = new Random();
 	String version = Integer.toString(random.nextInt());
-
+	
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
 		while(Globals.getGlobals() != null){
@@ -103,6 +105,11 @@ public class GlobalsTest extends Globals {
 	
 	public GlobalsTest(){
 		this(true);
+	}
+	
+	@Override
+	public List<String> getBadGuyList(){
+		return new ArrayList<String>();
 	}
 	
 	protected GlobalsTest(boolean testing){

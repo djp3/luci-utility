@@ -23,9 +23,6 @@ public class DatastoreSQLite implements Datastore {
 	private SQLiteQueue queue;
 
 	static {
-		if (OSX_64) {
-			SQLite.setLibraryPath("/Users/djp3/.m2/repository/com/almworks/sqlite4java/libsqlite4java-osx/1.0.392/");
-		}
 	}
 
 	private static transient volatile Logger log = null;
@@ -36,7 +33,17 @@ public class DatastoreSQLite implements Datastore {
 		}
 		return log;
 	}
-
+	
+	public static void initializeSQLite(){
+		initializeSQLite(null);
+	}
+	
+	public static void initializeSQLite(String libraryPath){
+		if ((libraryPath == null) && OSX_64) {
+			SQLite.setLibraryPath("/Users/djp3/.m2/repository/com/almworks/sqlite4java/libsqlite4java-osx/1.0.392/");
+		}
+	}
+	
 	public DatastoreSQLite(String path) {
 		this.queue = new SQLiteQueue(new File(path));
 	}

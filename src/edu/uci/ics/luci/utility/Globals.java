@@ -29,6 +29,8 @@ import java.util.TimeZone;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import edu.uci.ics.luci.utility.webserver.handlers.login.DatastoreSQLite;
+
 
 public abstract class Globals implements Quittable{
 	
@@ -41,6 +43,11 @@ public abstract class Globals implements Quittable{
 	}
 	
 	private static final String LOG4J_CONFIG_FILE_DEFAULT = "luci-utility.log4j.xml";
+	
+	static{
+		setLog4JPropertyFileName(LOG4J_CONFIG_FILE_DEFAULT);
+		DatastoreSQLite.initializeSQLite();
+	}
 	
 	public static String getLog4JPropertyFileName() {
 		return System.getProperty("log4j.configurationFile");
@@ -70,7 +77,6 @@ public abstract class Globals implements Quittable{
 	
 	protected Globals(){
 		super();
-		setLog4JPropertyFileName(LOG4J_CONFIG_FILE_DEFAULT);
 		getLog().trace("Static Evaluation of "+Globals.class.getCanonicalName()+" complete");
 		
 		calendarCache = new CalendarCache(CalendarCache.TZ_GMT);

@@ -70,7 +70,9 @@ public class HandlerAbstractTest {
 			requestHandlerRegistry.put(null,new HandlerError(Globals.getGlobals().getSystemVersion()));
 				
 			RequestDispatcher requestDispatcher = new RequestDispatcher(requestHandlerRegistry);
-			WebServer ws = new WebServer(inputChannel, requestDispatcher, new AccessControl());
+			AccessControl accessControl = new AccessControl();
+			accessControl.reset();
+			WebServer ws = new WebServer(inputChannel, requestDispatcher, accessControl);
 			ws.start();
 			globals.addQuittable(ws);
 			return ws;

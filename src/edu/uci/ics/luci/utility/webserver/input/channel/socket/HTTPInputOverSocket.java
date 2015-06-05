@@ -418,158 +418,25 @@ public class HTTPInputOverSocket extends Input{
 			
 			HTTPOutputOverSocket oc = new HTTPOutputOverSocket(conn);
 			
+			getLog().info("Received a request on the wire:\n"+request.toString());
 			return new Pair<Request,Output>(request,oc);
 			
 			
-			
-//			InputChannelRequest icr = new InputChannelRequest();
-//		
-//			BufferedInputStream bis = null;
-//		
-//			StringBuilder request = new StringBuilder("");
-//		
-//			try {
-//				getLog().debug("----------------------");
-//				String source = myHandlerSocket.getInetAddress().toString();
-//				getLog().info("Handling request from " + source);
-//				icr.setSource(source);
-//				
-//				
-//				bis = new BufferedInputStream(myHandlerSocket.getInputStream());
-//				
-//				appendIncomingData(bis,request);
-//				
-//				getLog().debug("Full Client Request = \n" + request);
-//
-//				/* figure out the HTTP method */
-//				boolean getMethod = false;
-//				boolean postMethod = false;
-//				int indexGET = request.indexOf("GET");
-//				int indexPOST = request.indexOf("POST");
-//				int indexHTTP = -2;
-//				if(indexGET != -1){
-//					indexHTTP = request.indexOf("HTTP",indexGET);
-//					if(indexGET < indexHTTP){
-//						getMethod = true;
-//						icr.setProtocol(Channel.Protocol.HTTP_GET);
-//						getLog().debug("URL Client Request (HTTP GET)");
-//					}
-//				}
-//				else if(indexPOST != -1){
-//					indexHTTP = request.indexOf("HTTP",indexPOST);
-//					if(indexPOST < indexHTTP){
-//						postMethod = true;
-//						icr.setProtocol(InputChannel.Protocol.HTTP_POST);
-//						getLog().debug("URL Client Request (HTTP POST)");
-//					}
-//				}
-//				else{
-//					getLog().info("URL Client Request (HTTP UNKNOWN)");
-//				}
-//			
-//				if(indexHTTP == -1){
-//					indexHTTP = request.length();
-//				}
-//				
-//				
-//				/* Capture the header */
-//				appendIncomingData(bis,request);
-//				
-//				String header = "";
-//				int start = request.indexOf("\n",indexHTTP);
-//				if(start == -1){
-//					start = request.indexOf("\r",indexHTTP);
-//				}
-//						
-//				if(start >=0 ){
-//					header = request.substring(start).trim();
-//				}
-//			
-//				if(header.length() == 0){
-//					getLog().warn("No HTTP Headers from <"+source+"> url:<"+request+">");
-//					header="";
-//				}
-//				
-//				icr.setHeaders(parseHeaderString(header));
-//
-//				/* Capture the parameters, which either start at a ? or if there is a space before the ? then there are no parameters*/
-//				/* Find the root of the request */
-//				appendIncomingData(bis,request);
-//				
-//				start = request.indexOf("/");
-//				int end = -1;
-//				if(start != -1){
-//					int q = request.indexOf("?",start);
-//					int s = request.indexOf(" ",start);
-//					if((q != -1) && (s != -1)){
-//						if(q < s){
-//							end = q;
-//						}
-//						else{
-//							end = s;
-//						}
-//					}
-//					else{
-//						if( q == -1 ){
-//							end = s;
-//						}
-//						if( s == -1 ){
-//							end = q;
-//						}
-//					}
-//				}
-//			
-//				String command = "";
-//				if((start >= 0) && (end >=0)){
-//					command = request.substring(start+1, end).trim();
-//			
-//					/*Grab the parameters */
-//					String requestParameters = "";
-//					if(getMethod){
-//						start = request.indexOf("?");
-//						end = request.indexOf(" ",start);
-//						if((start >=0 ) && (end >=0)){
-//							requestParameters = request.substring(start+1,end).trim();
-//						}
-//						else{
-//							getLog().warn("No HTTP (GET) parameters from <"+source+"> url:<"+request+">");
-//						}
-//					}
-//					else if(postMethod){
-//						start = requestParameters.indexOf("\r\n\r\n");
-//					
-//						if(start >=0 ){
-//							requestParameters = requestParameters.substring(start+2).trim();
-//						}
-//						else{
-//							getLog().warn("No HTTP (POST) parameters from <"+source+"> url:<"+request+">");
-//							requestParameters="";
-//						}
-//					}
-//					else{
-//						getLog().warn("Unhandled HTTP method from <"+source+"> url:<"+request+">");
-//						requestParameters="";
-//					}
-//					icr.setParameters(parseQueryString(requestParameters));
-//						
-//					getLog().info("handling <"+command+"("+requestParameters+")>");
-//				}
-//			} catch (IOException e) {
-//				getLog().error("Unable to get data from incoming socket\n"+e);
-//			} finally {
-//				try {
-//					myHandlerSocket.shutdownInput();
-//					//Don't shutdown the input stream.  If you do the socket will be shutdown and we need it to output 
-//					/*if(bis != null){
-//						bis.close();
-//					}*/
-//				}
-//				catch (Exception e) {
-//					getLog().error(e);
-//				}
-//			}
-//			return new Pair<InputChannelRequest,OutputChannel>(icr,new OutputChannelSocket(myHandlerSocket));
 		}
+	}
+
+
+
+	@Override
+	public void closeChannel() {
+		if(localServerSocket != null){
+			try {
+				localServerSocket.close();
+			} catch (IOException e) {
+			}
+		}
+		localServerSocket = null;
+		
 	}
 
 	

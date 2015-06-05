@@ -21,6 +21,9 @@
 
 package edu.uci.ics.luci.utility.webserver.handlers;
 
+import java.net.URISyntaxException;
+
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -38,14 +41,33 @@ public class HandlerFavicon extends HandlerAbstract {
 		return log;
 	}
 
+	private URIBuilder favicon;
 
 	public HandlerFavicon() {
+		this(null);
+	}
+	
+	public HandlerFavicon(URIBuilder favicon) {
 		super();
+		
+		if(favicon != null){
+			try {
+				this.favicon = new URIBuilder(favicon.build());
+			} catch (URISyntaxException e) {
+				getLog().info(e);
+			}
+		}
+		if(this. favicon == null){
+			this.favicon = new URIBuilder().setScheme("http")
+					.setHost("djp3-pc7.ics.uci.edu")
+					.setPort(80)
+					.setPath("/cacophony-dev/projects/cacophony/repository/revisions/production/raw/cacophony/doc/graphics/favicon.ico");
+		}
 	}
 	
 	@Override
 	public HandlerFavicon copy() {
-		return new HandlerFavicon();
+		return new HandlerFavicon(this.favicon);
 	}
 	
 	/**
@@ -57,7 +79,12 @@ public class HandlerFavicon extends HandlerAbstract {
 	public Response handle(Request request, Output o) {
 		Response response = o.makeOutputChannelResponse();
 		response.setStatus(Response.Status.PROXY);
-		response.setBody("http://djp3-pc7.ics.uci.edu/cacophony-dev/projects/cacophony/repository/revisions/production/raw/cacophony/doc/graphics/favicon.ico");
+		try {
+			response.setBody(this.favicon.build().toString());
+		} catch (URISyntaxException e) {
+			getLog().info(e);
+		}
+		getLog().info("Favicon response:"+response.getBody());
 		return response;
 	}
 

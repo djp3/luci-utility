@@ -94,7 +94,7 @@ public class RequestDispatcherTest {
 			}
 			
 			assertEquals(dispatcher.getNumInstantiatingThreadsInvoked(),1);
-			assertEquals(dispatcher.getInstancesToStage(),dispatcher.getRequestHandlersSize(HandlerVersion.class));
+			assertEquals(dispatcher.getNumInstancesToStageMax(),dispatcher.getRequestHandlersSize(HandlerVersion.class));
 			
 		} catch (RuntimeException e) {
 			fail("Couldn't start webserver"+e);

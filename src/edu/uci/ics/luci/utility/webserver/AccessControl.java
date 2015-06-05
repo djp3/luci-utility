@@ -54,7 +54,7 @@ public class AccessControl {
 	public AccessControl(){
 	}
 	
-	protected void reset(){
+	public void reset(){
 		setDefaultFilename(null);
 		setConfig(null);
 		setLastLoad(0);
@@ -66,7 +66,7 @@ public class AccessControl {
 		setBadGuyTest(Globals.getGlobals().getBadGuyList());
 	}
 	
-	protected String defaultFilename;
+	protected String defaultFilename = null;
 
 	protected Configuration config;
 	protected long lastLoad;
