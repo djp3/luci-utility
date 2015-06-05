@@ -21,38 +21,21 @@
 
 package edu.uci.ics.luci.utility.webserver.handlers.login;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.util.Map.Entry;
 import java.util.HashMap;
-import java.util.Set;
 
-import net.minidev.json.JSONArray;
-import net.minidev.json.JSONObject;
-
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Test;
 
 import edu.uci.ics.luci.utility.Globals;
 import edu.uci.ics.luci.utility.GlobalsTest;
 import edu.uci.ics.luci.utility.webserver.WebServer;
-import edu.uci.ics.luci.utility.webserver.WebUtil;
 import edu.uci.ics.luci.utility.webserver.handlers.HandlerAbstract;
-import edu.uci.ics.luci.utility.webserver.input.request.Request;
-import edu.uci.ics.luci.utility.webserver.output.channel.Output;
-import edu.uci.ics.luci.utility.webserver.output.response.Response;
+import edu.uci.ics.luci.utility.webserver.handlers.HandlerAbstractTest;
+import edu.uci.ics.luci.utility.webserver.handlers.HandlerVersion;
 
-public class HandlerLoginSystemTest extends HandlerAbstract {
+public class HandlerLoginSystemTest {
 
 	
 	@BeforeClass
@@ -76,46 +59,17 @@ public class HandlerLoginSystemTest extends HandlerAbstract {
 		int port = HandlerAbstractTest.testPortPlusPlus();
 		boolean secure = false;
 		ws = HandlerAbstractTest.startAWebServerSocket(Globals.getGlobals(),port,secure);
+		ws.getRequestDispatcher().updateRequestHandlerRegistry("/",new HandlerVersion(Globals.getGlobals().getSystemVersion()));
+		ws.getRequestDispatcher().updateRequestHandlerRegistry("/version",new HandlerVersion(Globals.getGlobals().getSystemVersion()));
 	}
 
 	@After
 	public void tearDown() throws Exception {
 	}
-	
-	
-	@Test
-	public void testWebServerSocket() {
-		
-		String responseString = null;
-		try {
-			HandlerAbstract handler = new HandlerFileServer(edu.uci.ics.luci.utility.Globals.class,"/www_test/");
-			ws.getRequestDispatcher().updateRequestHandlerRegistry(null,handler);
-			
-			ws.getRequestDispatcher().updateRequestHandlerRegistry("/",handler);
 
-			URIBuilder uriBuilder = new URIBuilder()
-										.setScheme("http")
-										.setHost("localhost")
-										.setPort(ws.getInputChannel().getPort())
-										.setPath("/index.html");
-			responseString = WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-			fail("Bad URL");
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail("IO Exception "+e);
-		}
-		catch (URISyntaxException e) {
-			e.printStackTrace();
-			fail("URISyntaxException");
-		}
-		
-		assertTrue(responseString.contains("<h1>This is a test html file</h1>"));
-		
-
-	}
 	
+	
+	/*
 	@Test
 	public void testLogin(){
 		
@@ -187,9 +141,20 @@ public class HandlerLoginSystemTest extends HandlerAbstract {
 		
 		
 	}
-	
 
-}
+	@Override
+	public Response handle(Request icr, Output oc) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public HandlerAbstract copy() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	*/
+
 
 }
 
