@@ -45,6 +45,7 @@ import edu.uci.ics.luci.utility.Globals;
 import edu.uci.ics.luci.utility.GlobalsTest;
 import edu.uci.ics.luci.utility.webserver.WebServer;
 import edu.uci.ics.luci.utility.webserver.WebUtil;
+import edu.uci.ics.luci.utility.webserver.event.api.HandlerAbstractTest;
 
 public class HandlerParameterReflectionTest {
 	

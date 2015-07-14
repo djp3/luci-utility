@@ -23,26 +23,33 @@ package edu.uci.ics.luci.utility.webserver;
 
 import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.security.InvalidParameterException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.lmax.disruptor.RingBuffer;
+import com.lmax.disruptor.dsl.Disruptor;
+
 import edu.uci.ics.luci.utility.Globals;
 import edu.uci.ics.luci.utility.Quittable;
 import edu.uci.ics.luci.utility.datastructure.Pair;
-import edu.uci.ics.luci.utility.webserver.handlers.HandlerAbstract;
-import edu.uci.ics.luci.utility.webserver.handlers.HandlerError;
-import edu.uci.ics.luci.utility.webserver.handlers.HandlerShutdown;
-import edu.uci.ics.luci.utility.webserver.handlers.HandlerUnstableWrapper;
-import edu.uci.ics.luci.utility.webserver.handlers.HandlerVersion;
+import edu.uci.ics.luci.utility.webserver.event.Event_MiddleWare;
+import edu.uci.ics.luci.utility.webserver.event.api.APIEvent;
+import edu.uci.ics.luci.utility.webserver.event.api.APIEvent_Error;
+import edu.uci.ics.luci.utility.webserver.event.api.APIEvent_Shutdown;
+import edu.uci.ics.luci.utility.webserver.event.api.APIEvent_UnstableWrapper;
+import edu.uci.ics.luci.utility.webserver.event.api.APIEvent_Version;
+import edu.uci.ics.luci.utility.webserver.event.wrapper.EventWrapper;
+import edu.uci.ics.luci.utility.webserver.event.wrapper.EventWrapperFactory;
+import edu.uci.ics.luci.utility.webserver.event.wrapper.EventWrapperHandler;
+import edu.uci.ics.luci.utility.webserver.event.wrapper.EventWrapperQueuer;
 import edu.uci.ics.luci.utility.webserver.input.channel.Input;
 import edu.uci.ics.luci.utility.webserver.input.channel.socket.HTTPInputOverSocket;
 import edu.uci.ics.luci.utility.webserver.input.request.Request;
@@ -85,7 +92,7 @@ public class WebServer implements Runnable,Quittable{
 	/*******************************************/
 	
 	Thread webServerThread = null;
-	ExecutorService threadExecutor = null;
+	private ExecutorService threadExecutor = null;
 	
 	private long startTime = System.currentTimeMillis();
 	private long count = 0;
@@ -93,33 +100,17 @@ public class WebServer implements Runnable,Quittable{
 	private boolean quitting = false;
 
 	private Input inputChannel = null;
-	private RequestDispatcher requestDispatcher= null;
 	private AccessControl accessControl;
 	
-	/* Set up a queue to convert the incoming text into input channel requests */
-	private LinkedBlockingQueue<Future<Pair<Request, Output>>> incomingQueue = new LinkedBlockingQueue<Future<Pair<Request,Output>>>();
-
-	private Future<Void> incomingGrabberFuture;
-	private Future<Void> middlewareProcessorFuture;
-	private Future<?> requestDispatcherFuture;
+	private EventWrapperQueuer eventPublisher;
+	private Map<String, APIEvent> aPIRegistry;
+	private File logFile = null;
 	
 	
 	
 	/*******************************************/
 	/**  Code for shutting down **/
 	
-	/**
-	 * Used internally to such down the blocking queues
-	 * @author djp3
-	 *
-	 */
-	private static class MyHandlerQueuePoisonPill implements Callable<Pair<Request,Output>>{
-		@Override
-		public Pair<Request, Output> call() throws Exception {
-			return new Pair<Request,Output>(null,null);
-		}
-		
-	}
 	
 	/**
 	 * Shutdown the webserver.  Only needs to be called once with @param q = true.
@@ -140,47 +131,12 @@ public class WebServer implements Runnable,Quittable{
 		}
 		quitting = q;
 		
-		/* Shutdown the piece that gets formats connections from the outside world */
-		if(incomingGrabberFuture != null){
-			incomingGrabberFuture.cancel(false);
-			while(!incomingGrabberFuture.isDone()){
-				incomingGrabberFuture.cancel(true);
-			}
-			incomingGrabberFuture = null;
-		}
-		
-		/* Shutdown the piece that takes formatted connections and gives them to the Request Dispatcher */
-		if(incomingQueue != null){
-			Future<Pair<Request, Output>> handlerQueuePoisonPill = threadExecutor.submit(new MyHandlerQueuePoisonPill());
-			incomingQueue.add(handlerQueuePoisonPill);
-		}
-		if(middlewareProcessorFuture != null){
-			middlewareProcessorFuture.cancel(false);
-			while(!middlewareProcessorFuture.isDone()){
-				middlewareProcessorFuture.cancel(true);
-			}
-			middlewareProcessorFuture = null;
-		}
-		incomingQueue= null;
-		
-		/* Shutdown the Request Dispatcher */
-		if(requestDispatcher != null){
-			requestDispatcher.setQuitting(q);
-			Pair<Request, Output> requestDispatcherPoisonPill = new Pair<Request,Output>(null,null);
-			requestDispatcher.addRequest(requestDispatcherPoisonPill);
-			requestDispatcher = null;
-		}
-		
-		if(requestDispatcherFuture != null){
-			requestDispatcherFuture.cancel(false);
-			while(!requestDispatcherFuture.isDone()){
-				requestDispatcherFuture.cancel(true);
-			}
-		}
-		
 		if(threadExecutor != null){
 			threadExecutor.shutdown();
-			threadExecutor=null;
+		}
+		
+		if(eventPublisher != null){
+			eventPublisher.setQuitting(true);
 		}
 		
 		getLog().info("WebServer shutdown");
@@ -188,6 +144,10 @@ public class WebServer implements Runnable,Quittable{
 	
 	public boolean isQuitting() {
 		return quitting;
+	}
+	
+	public boolean isTerminated(){
+		return(threadExecutor.isTerminated());
 	}
 	
 	/*******************************************/
@@ -200,15 +160,56 @@ public class WebServer implements Runnable,Quittable{
 		return count;
 	}
 	
+	
 	public Input getInputChannel(){
 		return inputChannel;
 	}
 	
-	public RequestDispatcher getRequestDispatcher(){
-		return requestDispatcher;
+	public Input setInputChannel(Input inputChannel){
+		return this.inputChannel = inputChannel;
 	}
 	
 	
+	private AccessControl getAccessControl() {
+		return accessControl;
+	}
+
+	private void setAccessControl(AccessControl accessControl) {
+		this.accessControl = accessControl;
+	}
+	
+	public Map<String, APIEvent> getAPIRegistry() {
+		return aPIRegistry;
+	}
+
+	public void setAPIRegistry(Map<String, APIEvent> aPIRegistry) {
+		this.aPIRegistry = aPIRegistry;
+	}
+	
+	public void updateAPIRegistry(String restCommand, APIEvent webevent){
+		if(aPIRegistry == null){
+			throw new IllegalStateException("APIRegistry has not been initialized");
+		}
+		aPIRegistry.put(restCommand, webevent);
+	}
+
+	public ExecutorService getThreadExecutor() {
+		return threadExecutor;
+	}
+
+	public void setThreadExecutor(ExecutorService threadExecutor) {
+		this.threadExecutor = threadExecutor;
+	}
+	
+	public EventWrapperQueuer getEventPublisher() {
+		return eventPublisher;
+	}
+
+	public void setEventPublisher(EventWrapperQueuer eventPublisher) {
+		this.eventPublisher = eventPublisher;
+	}
+
+
 	public Thread getWebServerThread() {
 		return webServerThread;
 	}
@@ -224,38 +225,67 @@ public class WebServer implements Runnable,Quittable{
 	 * @param requestDispatcher What is going to handle them?
 	 * @param accessControl Are there any access restrictions
 	 */
-	public WebServer(Input inputChannel, RequestDispatcher requestDispatcher,AccessControl accessControl){
+	public WebServer(Input inputChannel, Map<String, APIEvent> requestHandlerRegistry,AccessControl accessControl,File logFile){
 		
 		if(inputChannel == null){
 			throw new InvalidParameterException("The Input Channel can't be null");
 		}
-		if(requestDispatcher == null){
-			throw new InvalidParameterException("The Request Dispatcher can't be null");
+		if(requestHandlerRegistry == null){
+			throw new InvalidParameterException("The Request Handler Registry can't be null");
 		}
 		if(accessControl == null){
 			throw new InvalidParameterException("The Access Control can't be null");
 		}
 		
-		this.inputChannel = inputChannel;
-		this.requestDispatcher = requestDispatcher;
-		this.requestDispatcher.setWebServer(this);
+		setInputChannel(inputChannel);
 		
-		threadExecutor = Executors.newCachedThreadPool();
+		setAPIRegistry(requestHandlerRegistry);
 		
-		this.accessControl = accessControl;
+		setThreadExecutor(Executors.newCachedThreadPool());
+		
+		this.setAccessControl(accessControl);
 		if(this.accessControl.getDefaultFilename() == null){
 			throw new IllegalArgumentException("Initialize accessControl's defaultFilename before passing it to the web server");
 			//this.accessControl.setDefaultFilename(null);
 		}
 		
-		//if(Globals.getGlobals().isTesting()){
-			/*Clear access controls for testing*/
-			//this.accessControl.setBadGuyTest(new ArrayList<String>());
-		//}
+		this.logFile = logFile;
 		
 		setWebServerThread(new Thread(this));
 		getWebServerThread().setName("WebServer:"+((Globals.getGlobals().isTesting())?"testing":"not testing"));
 		getWebServerThread().setDaemon(false); /* Force a clean shutdown */
+	}
+	
+	
+	
+	
+	/**
+	 * Create Event Disruptor Queue
+	 * @return 
+	 */
+	@SuppressWarnings("unchecked")
+	public EventWrapperQueuer createEventQueue(File logFile) {
+	    // The factory for the event
+	    EventWrapperFactory factory = new EventWrapperFactory();
+	
+	    // Specify the size of the ring buffer, must be power of 2.
+	    int bufferSize = 1024;
+	
+	    // Construct the Disruptor
+	    Disruptor<EventWrapper> disruptor = new Disruptor<EventWrapper>(factory, bufferSize, getThreadExecutor());
+	
+	    // Connect the handler
+	    disruptor.handleEventsWith(new EventWrapperHandler(getThreadExecutor()));
+	        
+	    // Start the Disruptor, starts all threads running
+	    disruptor.start();
+	
+	    // Get the ring buffer from the Disruptor to be used for publishing.
+	    RingBuffer<EventWrapper> ringBuffer = disruptor.getRingBuffer();
+	
+	    EventWrapperQueuer localEventPublisher = new EventWrapperQueuer(disruptor,ringBuffer,logFile);
+	    
+	    return(localEventPublisher);
 	}
 	
 	
@@ -305,102 +335,61 @@ public class WebServer implements Runnable,Quittable{
 	 * @author djp3
 	 *
 	 */
-	private class MyIncomingGrabber implements Callable<Void>{
+	private static class MyIncomingGrabber implements Callable<Void>{
 		
+		public static final String ERROR_NULL_PARENT = "Parent webserver can't be null";
+		
+		/*******************************************/
+		private static transient volatile Logger log = null;
+		public static Logger getLog(){
+			if(log == null){
+				log = LogManager.getLogger(MyIncomingGrabber.class);
+			}
+			return log;
+		}
+		/*******************************************/
+		
+		private WebServer webserver = null;
+
+		public MyIncomingGrabber(WebServer parent) {
+			if(parent == null){
+				throw new IllegalArgumentException(ERROR_NULL_PARENT);
+			}
+			this.webserver = parent;
+		}
+
 		@Override
 		public Void call() throws Exception {
-			getLog().info("Time:"+System.currentTimeMillis()+",Server is listening on port " + inputChannel.getPort());
+			try{
+				getLog().info("Time:"+System.currentTimeMillis()+",Server is listening on port " + webserver.getInputChannel().getPort());
 			
-			while(!isQuitting()){
-				/* Wait for work to come in, this often times out and returns null */
-				Callable<Pair<Request, Output>> handleMe = inputChannel.waitForIncomingRequest();
+				while(!webserver.isQuitting()){
+					/* Wait for work to come in, this often times out and returns null */
+					Callable<Pair<Request, Output>> incoming = webserver.getInputChannel().waitForIncomingRequest();
 				
-				/* Put in a conversion job to pull the input channel request off the channel */
-				if(!isQuitting() && (handleMe != null)){
-					incomingQueue.put(threadExecutor.submit(handleMe));
+					/* Put in a conversion job to pull the input channel request off the channel */
+					if(!webserver.isQuitting() && (incoming != null)){
+						Event_MiddleWare event = new Event_MiddleWare(webserver,webserver.getThreadExecutor().submit(incoming),webserver.getAccessControl());
+						EventWrapper eventWrapper = new EventWrapper(event);
+						webserver.getEventPublisher().onData(eventWrapper);
+					}
 				}
+			}catch(Exception e){
+				getLog().error(e);
+				e.printStackTrace();
+				throw e;
 			}
 			return null;
 		}
 	}
-	
-	/**
-	 * This takes works orders from the incomingQueue and dispatches them
-	 * @author djp3
-	 *
-	 */
-	private class MyMiddlewareProcessor implements Callable<Void>{
-
-		@Override
-		public Void call() throws Exception {
-			
-			while (!isQuitting()) {
-				/* Check all the conversion jobs to see if they are done */
-				getLog().info( "Waiting for a conversion job");
-				
-				/*Blocking wait for a job to come in */
-				Future<Pair<Request, Output>> f = null;
-				try{
-					f = incomingQueue.take();
-				}
-				catch(InterruptedException e){
-				}
-				
-				if(f != null){
-					/* Make sure we didn't start quitting while we were blocking */
-					if( (!f.isDone()) || isQuitting() ){
-						/* If the conversion job is not done put it back */
-						incomingQueue.put(f);
-					}
-					else{
-						Pair<Request, Output> pair = null;
-						try {
-							pair = f.get();
-
-							Request request = pair.getFirst();
-
-							if (request != null) {
-								/*
-								 * Check to make sure this connection
-								 * source is allowed
-								 */
-								String source = request.getSource();
-								if (accessControl.allowSource(source, true, false)) {
-									/*
-									 * Add the work order to the
-									 * dispatchers work queue
-									 */
-									requestDispatcher.addRequest(pair);
-									count++;
-								} else {
-									getLog().warn("Server silently rejected request from " + source);
-								}
-							}
-						} catch (InterruptedException e) {
-							// Getting the future result failed
-						} catch (ExecutionException e) {
-							// Getting the future result failed
-						}
-					}
-				}
-			}
-			return null;
-		}
-	}
-	
-	
 	
 	public void run(){
+		
+		setEventPublisher(createEventQueue(logFile));
+		
 		try {
 			if (!isQuitting()) {
-				/*Set up a thread to dispatch incoming requests to the appropriate handler */
-				requestDispatcherFuture = threadExecutor.submit(requestDispatcher);
-				
-				/* Then set up a thread to take the incoming jobs, check them and pass them to the RequestDispatcher*/
-				middlewareProcessorFuture = threadExecutor.submit(new MyMiddlewareProcessor()); 
-				
-				/* Then set up a thread to pull things off the input channel and convert them to jobs*/
-				incomingGrabberFuture = threadExecutor.submit(new MyIncomingGrabber());
+				getThreadExecutor().submit(new MyIncomingGrabber(this));
 			}
 		} catch (RuntimeException e) {
 			getLog().fatal(e.toString());
@@ -414,6 +403,7 @@ public class WebServer implements Runnable,Quittable{
 	
 	private static class GlobalsDummy extends Globals{
 		
+		/*******************************************/
 		private static transient volatile Logger log = null;
 		public static Logger getLog(){
 			if(log == null){
@@ -421,6 +411,7 @@ public class WebServer implements Runnable,Quittable{
 			}
 			return log;
 		}
+		/*******************************************/
 
 		@Override
 		public String getSystemVersion() {
@@ -441,21 +432,20 @@ public class WebServer implements Runnable,Quittable{
 		
 		try {
 			HTTPInputOverSocket inputChannel = new HTTPInputOverSocket(port,secure);
-			HashMap<String, HandlerAbstract> requestHandlerRegistry = new HashMap<String,HandlerAbstract>();
+			HashMap<String, APIEvent> requestHandlerRegistry = new HashMap<String,APIEvent>();
 			
 			// Null is a default Handler
-			requestHandlerRegistry.put(null,new HandlerError(Globals.getGlobals().getSystemVersion()));
-			requestHandlerRegistry.put("/version",new HandlerVersion(Globals.getGlobals().getSystemVersion()));
-			requestHandlerRegistry.put("/fail",new HandlerUnstableWrapper(0.5d,0,new HandlerVersion(Globals.getGlobals().getSystemVersion())));
-			requestHandlerRegistry.put("/latent",new HandlerUnstableWrapper(0.0d,100,new HandlerVersion(Globals.getGlobals().getSystemVersion())));
-			requestHandlerRegistry.put("/unstable",new HandlerUnstableWrapper(0.5d,100,new HandlerVersion(Globals.getGlobals().getSystemVersion())));
-			requestHandlerRegistry.put("/shutdown",new HandlerShutdown(Globals.getGlobals()));
+			requestHandlerRegistry.put(null,new APIEvent_Error(Globals.getGlobals().getSystemVersion()));
+			requestHandlerRegistry.put("/version",new APIEvent_Version(Globals.getGlobals().getSystemVersion()));
+			requestHandlerRegistry.put("/fail",new APIEvent_UnstableWrapper(0.5d,0,new APIEvent_Version(Globals.getGlobals().getSystemVersion())));
+			requestHandlerRegistry.put("/latent",new APIEvent_UnstableWrapper(0.0d,100,new APIEvent_Version(Globals.getGlobals().getSystemVersion())));
+			requestHandlerRegistry.put("/unstable",new APIEvent_UnstableWrapper(0.5d,100,new APIEvent_Version(Globals.getGlobals().getSystemVersion())));
+			requestHandlerRegistry.put("/shutdown",new APIEvent_Shutdown(Globals.getGlobals()));
 				
-			RequestDispatcher requestDispatcher = new RequestDispatcher(requestHandlerRegistry);
 			AccessControl accessControl = new AccessControl();
 			accessControl.setDefaultFilename("test/access_control_list_for_testing.properties");
 			
-			ws = new WebServer(inputChannel, requestDispatcher, accessControl);
+			ws = new WebServer(inputChannel, requestHandlerRegistry, accessControl,null);
 			
 			Globals.getGlobals().addQuittable(ws);
 			

@@ -34,7 +34,9 @@ import java.util.Random;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -61,6 +63,10 @@ public class DBConnectionTest {
 
 	@BeforeClass
 	public static void setUp() throws Exception {
+		while(Globals.getGlobals() != null){
+			Thread.sleep(100);
+		}
+		
 		try{
 			Globals.setGlobals(new GlobalsTest());
 			odbcp = new LUCIDBConnectionPool(Globals.getGlobals().getDatabaseDomain(), "testDatabase", "testuser", "testuserPassword",null,0);

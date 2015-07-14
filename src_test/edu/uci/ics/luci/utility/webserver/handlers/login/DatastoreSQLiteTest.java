@@ -14,6 +14,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import edu.uci.ics.luci.utility.webserver.event.api.login.ColumnProperty;
+import edu.uci.ics.luci.utility.webserver.event.api.login.ColumnType;
+import edu.uci.ics.luci.utility.webserver.event.api.login.Datastore;
+import edu.uci.ics.luci.utility.webserver.event.api.login.DatastoreSQLite;
+
 public class DatastoreSQLiteTest {
 	
 	@BeforeClass

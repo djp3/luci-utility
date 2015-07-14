@@ -38,7 +38,7 @@ import edu.uci.ics.luci.utility.webserver.MyKeyManager;
 import edu.uci.ics.luci.utility.webserver.input.channel.Input;
 import edu.uci.ics.luci.utility.webserver.input.request.Request;
 import edu.uci.ics.luci.utility.webserver.output.channel.Output;
-import edu.uci.ics.luci.utility.webserver.output.channel.socket.HTTPOutputOverSocket;
+import edu.uci.ics.luci.utility.webserver.output.channel.socket.Output_Socket_HTTP;
 
 public class HTTPInputOverSocket extends Input{
 	
@@ -416,7 +416,7 @@ public class HTTPInputOverSocket extends Input{
 				}
 			}
 			
-			HTTPOutputOverSocket oc = new HTTPOutputOverSocket(conn);
+			Output_Socket_HTTP oc = new Output_Socket_HTTP(conn);
 			
 			getLog().info("Received a request on the wire:\n"+request.toString());
 			return new Pair<Request,Output>(request,oc);

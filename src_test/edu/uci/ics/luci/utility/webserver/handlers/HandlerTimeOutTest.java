@@ -40,6 +40,7 @@ import edu.uci.ics.luci.utility.Globals;
 import edu.uci.ics.luci.utility.GlobalsTest;
 import edu.uci.ics.luci.utility.webserver.WebServer;
 import edu.uci.ics.luci.utility.webserver.WebUtil;
+import edu.uci.ics.luci.utility.webserver.event.api.HandlerAbstractTest;
 
 public class HandlerTimeOutTest {
 	
@@ -75,8 +76,8 @@ public class HandlerTimeOutTest {
 	public void testWebServerSocket() {
 		
 		try {
-			ws.getRequestDispatcher().updateRequestHandlerRegistry(null,new HandlerTimeOut());
-			ws.getRequestDispatcher().updateRequestHandlerRegistry("/",new HandlerTimeOut());
+			ws.getRequestDispatcher().updateRequestHandlerRegistry(null,new APIEvent_TimeOut());
+			ws.getRequestDispatcher().updateRequestHandlerRegistry("/",new APIEvent_TimeOut());
 			
 			new URIBuilder();
 			URIBuilder uriBuilder = new URIBuilder()

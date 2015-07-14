@@ -66,7 +66,7 @@ public class RequestDispatcherTest {
 		try {
 			Map<String, HandlerAbstract> requestHandlerRegistry = new HashMap<String, HandlerAbstract>();
 			
-			HandlerVersion versionHandler= new HandlerVersion(testVersion);
+			ServerCallHandler_Version versionHandler= new ServerCallHandler_Version(testVersion);
 			requestHandlerRegistry.put(null,versionHandler);
 			requestHandlerRegistry.put("",versionHandler);
 			requestHandlerRegistry.put("version",versionHandler);
@@ -94,7 +94,7 @@ public class RequestDispatcherTest {
 			}
 			
 			assertEquals(dispatcher.getNumInstantiatingThreadsInvoked(),1);
-			assertEquals(dispatcher.getNumInstancesToStageMax(),dispatcher.getRequestHandlersSize(HandlerVersion.class));
+			assertEquals(dispatcher.getNumInstancesToStageMax(),dispatcher.getRequestHandlersSize(ServerCallHandler_Version.class));
 			
 		} catch (RuntimeException e) {
 			fail("Couldn't start webserver"+e);

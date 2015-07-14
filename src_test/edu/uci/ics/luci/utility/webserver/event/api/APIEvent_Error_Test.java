@@ -1,26 +1,6 @@
-/*
-	Copyright 2007-2015
-		University of California, Irvine (c/o Donald J. Patterson)
-*/
-/*
-	This file is part of the Laboratory for Ubiquitous Computing java Utility package, i.e. "Utilities"
+package edu.uci.ics.luci.utility.webserver.event.api;
 
-    Utilities is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    Utilities is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with Utilities.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-package edu.uci.ics.luci.utility.webserver.handlers;
-
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -43,49 +23,64 @@ import edu.uci.ics.luci.utility.Globals;
 import edu.uci.ics.luci.utility.GlobalsTest;
 import edu.uci.ics.luci.utility.webserver.WebServer;
 import edu.uci.ics.luci.utility.webserver.WebUtil;
-import edu.uci.ics.luci.utility.webserver.event.api.HandlerAbstractTest;
 
-public class HandlerErrorTest {
-	
+public class APIEvent_Error_Test {
+
 	@BeforeClass
-	public static void setUpClass() throws Exception {
+	public static void setUpBeforeClass() throws Exception {
 		Globals.setGlobals(new GlobalsTest());
 	}
 
 	@AfterClass
-	public static void tearDownClass() throws Exception {
+	public static void tearDownAfterClass() throws Exception {
 		Globals.getGlobals().setQuitting(true);
 		Globals.setGlobals(null);
 	}
 
-	private WebServer ws = null;
-
-	HashMap<String,HandlerAbstract> requestHandlerRegistry;
-	
-
 	@Before
 	public void setUp() throws Exception {
-		int port = HandlerAbstractTest.testPortPlusPlus();
-		boolean secure = false;
-		ws = HandlerAbstractTest.startAWebServerSocket(Globals.getGlobals(),port,secure);
 	}
 
 	@After
 	public void tearDown() throws Exception {
 	}
 	
+	private WebServer ws = null;
+
+	HashMap<String,APIEvent> requestHandlerRegistry;
+
+	@Test
+	public void test() {
+		
+		try{
+			String version = System.currentTimeMillis()+"";
+		
+			APIEvent_Error a = new APIEvent_Error(version);
+			APIEvent b = (APIEvent) a.clone();
+			assertTrue(a.equals(b));
+		
+		}catch(Exception e){
+			fail("Exception make me fail"+e);
+		}
+	}
 	
 	
 	@Test
 	public void testWebServerSocket() {
+		String version = System.currentTimeMillis()+"";
 		
+		int port = APIEvent_Test.testPortPlusPlus();
+		boolean secure = false;
+		ws = APIEvent_Test.startAWebServerSocket(Globals.getGlobals(),port,secure);
+		ws.updateAPIRegistry("/error", new APIEvent_Error(version));
+
 		String responseString = null;
 		try {
 			URIBuilder uriBuilder = new URIBuilder()
 									.setScheme("http")
 									.setHost("localhost")
 									.setPort(ws.getInputChannel().getPort())
-									.setPath("/");
+									.setPath("/error");
 			responseString = WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
@@ -98,7 +93,7 @@ public class HandlerErrorTest {
 			e.printStackTrace();
 			fail("URISyntaxException");
 		}
-		//System.out.println(responseString);
+		System.out.println(responseString);
 
 		JSONObject response = null;
 		try {
@@ -107,6 +102,8 @@ public class HandlerErrorTest {
 		} catch (ClassCastException e) {
 			fail("Bad JSON Response");
 		}
+		
+		//Globals.getGlobals().setQuitting(true);
 
 	}
 

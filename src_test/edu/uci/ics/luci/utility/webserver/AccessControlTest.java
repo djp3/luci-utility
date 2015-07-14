@@ -32,7 +32,9 @@ import org.apache.commons.configuration.ConfigurationException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import edu.uci.ics.luci.utility.Globals;
@@ -57,6 +59,14 @@ public class AccessControlTest extends AccessControl{
 	
 	public AccessControlTest() {
 		super();
+		
+		while(Globals.getGlobals() != null){
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+			}
+		}
+		
 		Globals.setGlobals(new DummyGlobals());
 		super.reset();
 		if(Globals.getGlobals() == null){
@@ -64,6 +74,17 @@ public class AccessControlTest extends AccessControl{
 		}
 		this.setBadGuyTest(Globals.getGlobals().getBadGuyList());
 	}
+	
+	@BeforeClass
+	public static void setUpBeforeClass() throws Exception {
+		
+	}
+
+	@AfterClass
+	public static void tearDownAfterClass() throws Exception {
+		Globals.setGlobals(null);
+	}
+
 	
 	@Before
 	public void setUp() throws Exception {
@@ -249,7 +270,7 @@ public class AccessControlTest extends AccessControl{
 		assertTrue(!allowSource("128.195.58.12", false,false));
 		assertTrue(allowSource("128.195.58.12", true,false));
 		
-		String www_uci_edu = "128.195.188.233"; //If this is wrong the test might break
+		String www_uci_edu = "128.195.188.232"; //If this is wrong the test might break
 		assertTrue(!allowSource(www_uci_edu, false,true));
 		assertTrue(!allowSource(www_uci_edu, false,true));
 		

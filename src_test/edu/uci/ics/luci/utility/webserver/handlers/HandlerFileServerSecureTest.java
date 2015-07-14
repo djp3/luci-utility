@@ -41,6 +41,7 @@ import edu.uci.ics.luci.utility.Globals;
 import edu.uci.ics.luci.utility.GlobalsTest;
 import edu.uci.ics.luci.utility.webserver.WebServer;
 import edu.uci.ics.luci.utility.webserver.WebUtil;
+import edu.uci.ics.luci.utility.webserver.event.api.HandlerAbstractTest;
 
 public class HandlerFileServerSecureTest {
 	
@@ -92,7 +93,7 @@ public class HandlerFileServerSecureTest {
 			HandlerAbstract handler = new HandlerFileServer(edu.uci.ics.luci.utility.Globals.class,"/www_test/");
 			ws.getRequestDispatcher().updateRequestHandlerRegistry(null,handler);
 			
-			handler = new HandlerVersion(Globals.getGlobals().getSystemVersion());
+			handler = new ServerCallHandler_Version(Globals.getGlobals().getSystemVersion());
 			ws.getRequestDispatcher().updateRequestHandlerRegistry("",handler);
 
 			URIBuilder uriBuilder = new URIBuilder()

@@ -27,7 +27,6 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
-import java.util.HashMap;
 
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
@@ -43,6 +42,7 @@ import edu.uci.ics.luci.utility.Globals;
 import edu.uci.ics.luci.utility.GlobalsTest;
 import edu.uci.ics.luci.utility.webserver.WebServer;
 import edu.uci.ics.luci.utility.webserver.WebUtil;
+import edu.uci.ics.luci.utility.webserver.event.api.HandlerAbstractTest;
 
 public class HandlerVersionTest {
 	
@@ -59,16 +59,14 @@ public class HandlerVersionTest {
 
 	private WebServer ws = null;
 
-	HashMap<String,HandlerAbstract> requestHandlerRegistry;
-	
 
 	@Before
 	public void setUp() throws Exception {
 		int port = HandlerAbstractTest.testPortPlusPlus();
 		boolean secure = false;
 		ws = HandlerAbstractTest.startAWebServerSocket(Globals.getGlobals(),port,secure);
-		ws.getRequestDispatcher().updateRequestHandlerRegistry("/",new HandlerVersion(Globals.getGlobals().getSystemVersion()));
-		ws.getRequestDispatcher().updateRequestHandlerRegistry("/version",new HandlerVersion(Globals.getGlobals().getSystemVersion()));
+		ws.getRequestDispatcher().updateRequestHandlerRegistry("/",new ServerCallHandler_Version(Globals.getGlobals().getSystemVersion()));
+		ws.getRequestDispatcher().updateRequestHandlerRegistry("/version",new ServerCallHandler_Version(Globals.getGlobals().getSystemVersion()));
 	}
 
 	@After
@@ -82,7 +80,6 @@ public class HandlerVersionTest {
 		
 		String responseString = null;
 		try {
-			new URIBuilder();
 			URIBuilder uriBuilder = new URIBuilder()
 										.setScheme("http")
 										.setHost("localhost")
@@ -122,7 +119,6 @@ public class HandlerVersionTest {
 		
 		String responseString = null;
 		try {
-			new URIBuilder();
 			URIBuilder uriBuilder = new URIBuilder()
 										.setScheme("http")
 										.setHost("localhost")
@@ -157,7 +153,6 @@ public class HandlerVersionTest {
 
 		responseString = null;
 		try {
-			new URIBuilder();
 			URIBuilder uriBuilder = new URIBuilder()
 										.setScheme("http")
 										.setHost("localhost")

@@ -39,9 +39,9 @@ import org.junit.Test;
 
 import edu.uci.ics.luci.utility.Globals;
 import edu.uci.ics.luci.utility.GlobalsTest;
-import edu.uci.ics.luci.utility.webserver.handlers.HandlerAbstractTest;
-import edu.uci.ics.luci.utility.webserver.handlers.HandlerShutdown;
-import edu.uci.ics.luci.utility.webserver.handlers.HandlerUnstableWrapper;
+import edu.uci.ics.luci.utility.webserver.disruptor.eventhandlers.dispatch.HandlerUnstableWrapper;
+import edu.uci.ics.luci.utility.webserver.disruptor.eventhandlers.server.ServerCallHandler_Shutdown;
+import edu.uci.ics.luci.utility.webserver.event.api.HandlerAbstractTest;
 import edu.uci.ics.luci.utility.webserver.handlers.HandlerVersion;
 
 public class WebserverFailureTest {
@@ -66,7 +66,7 @@ public class WebserverFailureTest {
 		int port = HandlerAbstractTest.testPortPlusPlus();
 		boolean secure = false;
 		ws = HandlerAbstractTest.startAWebServerSocket(Globals.getGlobals(),port,secure);
-		ws.getRequestDispatcher().updateRequestHandlerRegistry("/shutdown",new HandlerShutdown(Globals.getGlobals()));
+		ws.getRequestDispatcher().updateRequestHandlerRegistry("/shutdown",new ServerCallHandler_Shutdown(Globals.getGlobals()));
 	}
 
 	@After
@@ -81,7 +81,7 @@ public class WebserverFailureTest {
 	public void testWebserverFailure() {
 		//long start = System.currentTimeMillis();
 		
-		ws.getRequestDispatcher().updateRequestHandlerRegistry("/",new HandlerUnstableWrapper(1.0d,0,new HandlerVersion(Globals.getGlobals().getSystemVersion())));
+		ws.getRequestDispatcher().updateRequestHandlerRegistry("/",new HandlerUnstableWrapper(1.0d,0,new ServerCallHandler_Version(Globals.getGlobals().getSystemVersion())));
 
 		try {
 			URIBuilder uriBuilder = new URIBuilder()
@@ -124,8 +124,8 @@ public class WebserverFailureTest {
 	//for i in {1..10}; do echo $i;wget -t 1 -O - "http://localhost:9020/" ;done; wget -O - "http://localhost:9020/shutdown"
 	public void testWebserverFailureExternalRequests() {
 		
-		ws.getRequestDispatcher().updateRequestHandlerRegistry("/",new HandlerUnstableWrapper(1.0d,0,new HandlerVersion(Globals.getGlobals().getSystemVersion())));
-		ws.getRequestDispatcher().updateRequestHandlerRegistry("/version",new HandlerUnstableWrapper(1.0d,0,new HandlerVersion(Globals.getGlobals().getSystemVersion())));
+		ws.getRequestDispatcher().updateRequestHandlerRegistry("/",new HandlerUnstableWrapper(1.0d,0,new ServerCallHandler_Version(Globals.getGlobals().getSystemVersion())));
+		ws.getRequestDispatcher().updateRequestHandlerRegistry("/version",new HandlerUnstableWrapper(1.0d,0,new ServerCallHandler_Version(Globals.getGlobals().getSystemVersion())));
 		
 		//long start = System.currentTimeMillis();
 		
