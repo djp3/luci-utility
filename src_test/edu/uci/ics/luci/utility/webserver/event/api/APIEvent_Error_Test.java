@@ -1,7 +1,7 @@
 package edu.uci.ics.luci.utility.webserver.event.api;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -57,7 +57,23 @@ public class APIEvent_Error_Test {
 		
 			APIEvent_Error a = new APIEvent_Error(version);
 			APIEvent b = (APIEvent) a.clone();
+			
+			APIEvent_Version c = new APIEvent_Version(version);
+			
+			assertTrue(!a.equals(null));
+			
+			assertTrue(!a.equals("Hello world"));
+			
+			assertTrue(!a.equals(c));
+			
+			assertTrue(a.equals(a));
+			assertTrue(a.hashCode() == a.hashCode());
+			
 			assertTrue(a.equals(b));
+			assertTrue(a.hashCode() == b.hashCode());
+			
+			assertTrue(b.equals(a));
+			assertTrue(b.hashCode() == a.hashCode());
 		
 		}catch(Exception e){
 			fail("Exception make me fail"+e);

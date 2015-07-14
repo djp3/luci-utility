@@ -76,6 +76,7 @@ public class APIEvent extends Event implements Cloneable{
 			this.setOutput(incoming.getOutput());
 		}
 		else{
+			getLog().error(ERROR_SET_ENCOUNTERED_TYPE_MISMATCH+", incoming:"+_incoming.getClass().getName()+", this:"+this.getClass().getName());
 			throw new InvalidParameterException(ERROR_SET_ENCOUNTERED_TYPE_MISMATCH+", incoming:"+_incoming.getClass().getName()+", this:"+this.getClass().getName());
 		}
 	}
@@ -113,18 +114,6 @@ public class APIEvent extends Event implements Cloneable{
 		}
 	}
 	
-	/** From : http://stackoverflow.com/a/5445161
-	 * 
-	 * @param is
-	 * @return
-	 */
-	protected static String convertStreamToString(java.io.InputStream is) {
-	    try {
-	        return new java.util.Scanner(is).useDelimiter("\\A").next();
-	    } catch (java.util.NoSuchElementException e) {
-	        return "";
-	    }
-	}
 	
 
 	protected JSONObject buildResponseSkeleton() {
@@ -149,6 +138,7 @@ public class APIEvent extends Event implements Cloneable{
 		response.setDataType(APIEventResult.DataType.JSON);
 		response.setResponseBody(wrapCallback(getRequest().getParameters(),ret.toString()));
 		
+		getLog().info("APIEvent Executed");
 		return response;
 	}
 
