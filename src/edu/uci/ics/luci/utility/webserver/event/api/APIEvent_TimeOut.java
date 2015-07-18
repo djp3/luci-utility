@@ -21,9 +21,12 @@
 
 package edu.uci.ics.luci.utility.webserver.event.api;
 
+import java.security.InvalidParameterException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import edu.uci.ics.luci.utility.webserver.event.Event;
 import edu.uci.ics.luci.utility.webserver.event.result.api.APIEventResult;
 
 public class APIEvent_TimeOut extends APIEvent implements Cloneable{
@@ -36,10 +39,32 @@ public class APIEvent_TimeOut extends APIEvent implements Cloneable{
 		return log;
 	}
 	
-	Thread timeOuter;
+	private Thread timeOuter;
 	
 	public APIEvent_TimeOut(){
 		super();
+	}
+	
+	public Thread getTimeOuter() {
+		return timeOuter;
+	}
+
+	public void setTimeOuter(Thread timeOuter) {
+		this.timeOuter = timeOuter;
+	}
+
+	@Override
+	public void set(Event _incoming) {
+		APIEvent_TimeOut incoming = null;
+		if(_incoming instanceof APIEvent_TimeOut){
+			incoming = (APIEvent_TimeOut) _incoming;
+			super.set(incoming);
+			this.setTimeOuter(incoming.getTimeOuter());
+		}
+		else{
+			getLog().error(ERROR_SET_ENCOUNTERED_TYPE_MISMATCH+", incoming:"+_incoming.getClass().getName()+", this:"+this.getClass().getName());
+			throw new InvalidParameterException(ERROR_SET_ENCOUNTERED_TYPE_MISMATCH+", incoming:"+_incoming.getClass().getName()+", this:"+this.getClass().getName());
+		}
 	}
 	
 	@Override
@@ -79,12 +104,44 @@ public class APIEvent_TimeOut extends APIEvent implements Cloneable{
 			}
 		}
 		
-		response.setStatus(APIEventResult.Status.OK);
-		response.setDataType(APIEventResult.DataType.JSON);
-		response.setResponseBody(wrapCallback(getRequest().getParameters(),""));
-		
+		/* We should never get here */
+		getLog().fatal("Something very unexpected has happened");
 		return response;
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result
+				+ ((timeOuter == null) ? 0 : timeOuter.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!super.equals(obj)) {
+			return false;
+		}
+		if (!(obj instanceof APIEvent_TimeOut)) {
+			return false;
+		}
+		APIEvent_TimeOut other = (APIEvent_TimeOut) obj;
+		if (timeOuter == null) {
+			if (other.timeOuter != null) {
+				return false;
+			}
+		} else if (!timeOuter.equals(other.timeOuter)) {
+			return false;
+		}
+		return true;
+	}
+	
+	
+	
 }
 
 

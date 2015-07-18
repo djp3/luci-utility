@@ -28,7 +28,7 @@ import edu.uci.ics.luci.utility.webserver.event.EventVoid;
 import edu.uci.ics.luci.utility.webserver.input.request.Request;
 import edu.uci.ics.luci.utility.webserver.output.channel.socket.Output_Socket_HTTP;
 
-public class APIEvent_Error_Test {
+public class APIEvent_Version_Test {
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -59,10 +59,10 @@ public class APIEvent_Error_Test {
 		try{
 			String version = System.currentTimeMillis()+"";
 		
-			APIEvent_Error a = new APIEvent_Error(version);
-			APIEvent_Error b = (APIEvent_Error) a.clone();
+			APIEvent_Version a = new APIEvent_Version(null);
+			APIEvent_Version b = (APIEvent_Version) a.clone();
 			
-			APIEvent_Version c = new APIEvent_Version(version);
+			APIEvent_TimeOut c = new APIEvent_TimeOut();
 			
 			assertTrue(!a.equals(null));
 			
@@ -79,10 +79,26 @@ public class APIEvent_Error_Test {
 			assertTrue(b.equals(a));
 			assertTrue(b.hashCode() == a.hashCode());
 			
+			/*request equals */
+			a.setAPIVersion("foo"+System.currentTimeMillis());
+			assertTrue(!a.equals(b));
+			assertTrue(!b.equals(a));
+			assertTrue(a.hashCode() != b.hashCode());
+			
+			b.setAPIVersion("bar"+System.currentTimeMillis());
+			assertTrue(!a.equals(b));
+			assertTrue(!b.equals(a));
+			assertTrue(a.hashCode() != b.hashCode());
+			
+			b.setAPIVersion(a.getAPIVersion());
+			assertTrue(a.equals(b));
+			assertTrue(b.equals(a));
+			assertTrue(a.hashCode() == b.hashCode());
 			
 			/*setting */
 			b.setRequest(new Request());
 			b.setOutput(new Output_Socket_HTTP(null));
+			b.setAPIVersion(version);
 			assertTrue(!a.equals(b));
 			a.set(b);
 			assertTrue(a.equals(b));
@@ -109,7 +125,7 @@ public class APIEvent_Error_Test {
 		int port = APIEvent_Test.testPortPlusPlus();
 		boolean secure = false;
 		ws = APIEvent_Test.startAWebServerSocket(Globals.getGlobals(),port,secure);
-		ws.updateAPIRegistry("/error", new APIEvent_Error(version));
+		ws.updateAPIRegistry("/test", new APIEvent_Version(version));
 
 		String responseString = null;
 		try {
@@ -117,7 +133,7 @@ public class APIEvent_Error_Test {
 									.setScheme("http")
 									.setHost("localhost")
 									.setPort(ws.getInputChannel().getPort())
-									.setPath("/error");
+									.setPath("/test");
 			responseString = WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
@@ -135,7 +151,8 @@ public class APIEvent_Error_Test {
 		JSONObject response = null;
 		try {
 			response = (JSONObject) JSONValue.parse(responseString);
-			assertEquals("true",response.get("error"));
+			assertEquals("false",response.get("error"));
+			assertTrue(((String)response.get("version")).equals(version));
 		} catch (ClassCastException e) {
 			fail("Bad JSON Response");
 		}

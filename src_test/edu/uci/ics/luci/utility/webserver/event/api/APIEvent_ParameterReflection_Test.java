@@ -10,6 +10,7 @@ import java.net.URISyntaxException;
 import java.security.InvalidParameterException;
 import java.util.HashMap;
 
+import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
 
@@ -28,7 +29,7 @@ import edu.uci.ics.luci.utility.webserver.event.EventVoid;
 import edu.uci.ics.luci.utility.webserver.input.request.Request;
 import edu.uci.ics.luci.utility.webserver.output.channel.socket.Output_Socket_HTTP;
 
-public class APIEvent_Error_Test {
+public class APIEvent_ParameterReflection_Test {
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -59,10 +60,10 @@ public class APIEvent_Error_Test {
 		try{
 			String version = System.currentTimeMillis()+"";
 		
-			APIEvent_Error a = new APIEvent_Error(version);
-			APIEvent_Error b = (APIEvent_Error) a.clone();
+			APIEvent_ParameterReflection a = new APIEvent_ParameterReflection();
+			APIEvent_ParameterReflection b = (APIEvent_ParameterReflection) a.clone();
 			
-			APIEvent_Version c = new APIEvent_Version(version);
+			APIEvent_Error c = new APIEvent_Error(version);
 			
 			assertTrue(!a.equals(null));
 			
@@ -109,7 +110,7 @@ public class APIEvent_Error_Test {
 		int port = APIEvent_Test.testPortPlusPlus();
 		boolean secure = false;
 		ws = APIEvent_Test.startAWebServerSocket(Globals.getGlobals(),port,secure);
-		ws.updateAPIRegistry("/error", new APIEvent_Error(version));
+		ws.updateAPIRegistry("/test", new APIEvent_ParameterReflection());
 
 		String responseString = null;
 		try {
@@ -117,7 +118,10 @@ public class APIEvent_Error_Test {
 									.setScheme("http")
 									.setHost("localhost")
 									.setPort(ws.getInputChannel().getPort())
-									.setPath("/error");
+									.setPath("/test")
+									.setParameter("a","A")
+									.setParameter("b","B")
+									.setParameter("c","C");
 			responseString = WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
@@ -135,7 +139,18 @@ public class APIEvent_Error_Test {
 		JSONObject response = null;
 		try {
 			response = (JSONObject) JSONValue.parse(responseString);
-			assertEquals("true",response.get("error"));
+			assertEquals("false",response.get("error"));
+
+			JSONObject parameters = (JSONObject) response.get("parameters");
+			JSONArray A = (JSONArray) parameters.get("a");
+			JSONArray B = (JSONArray) parameters.get("b");
+			JSONArray C = (JSONArray) parameters.get("c");
+			assertTrue(A.get(0) != null);
+			assertTrue(B.get(0) != null);
+			assertTrue(C.get(0) != null);
+			assertTrue(A.get(0).equals("A"));
+			assertTrue(B.get(0).equals("B"));
+			assertTrue(C.get(0).equals("C"));
 		} catch (ClassCastException e) {
 			fail("Bad JSON Response");
 		}

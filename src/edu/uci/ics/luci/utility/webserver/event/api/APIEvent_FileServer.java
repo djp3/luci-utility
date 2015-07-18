@@ -23,11 +23,13 @@ package edu.uci.ics.luci.utility.webserver.event.api;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.InvalidParameterException;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import edu.uci.ics.luci.utility.webserver.event.Event;
 import edu.uci.ics.luci.utility.webserver.event.result.api.APIEventResult;
 
 public class APIEvent_FileServer extends APIEvent implements Cloneable{
@@ -55,6 +57,38 @@ public class APIEvent_FileServer extends APIEvent implements Cloneable{
 		this.resourcePrefix = resourcePrefix;
 	}
 
+
+	public String getResourcePrefix() {
+		return resourcePrefix;
+	}
+
+	public void setResourcePrefix(String resourcePrefix) {
+		this.resourcePrefix = resourcePrefix;
+	}
+
+	public Class<?> getResourceBaseClass() {
+		return resourceBaseClass;
+	}
+
+	public void setResourceBaseClass(Class<?> resourceBaseClass) {
+		this.resourceBaseClass = resourceBaseClass;
+	}
+
+	
+	@Override
+	public void set(Event _incoming) {
+		APIEvent_FileServer incoming = null;
+		if(_incoming instanceof APIEvent_FileServer){
+			incoming = (APIEvent_FileServer) _incoming;
+			super.set(incoming);
+			this.setResourcePrefix(incoming.getResourcePrefix());
+			this.setResourceBaseClass(incoming.getResourceBaseClass());
+		}
+		else{
+			getLog().error(ERROR_SET_ENCOUNTERED_TYPE_MISMATCH+", incoming:"+_incoming.getClass().getName()+", this:"+this.getClass().getName());
+			throw new InvalidParameterException(ERROR_SET_ENCOUNTERED_TYPE_MISMATCH+", incoming:"+_incoming.getClass().getName()+", this:"+this.getClass().getName());
+		}
+	}
 
 	@Override
 	public Object clone(){
@@ -129,6 +163,54 @@ public class APIEvent_FileServer extends APIEvent implements Cloneable{
 		
 		return response;
 	}
+
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime
+				* result
+				+ ((resourceBaseClass == null) ? 0 : resourceBaseClass
+						.hashCode());
+		result = prime * result
+				+ ((resourcePrefix == null) ? 0 : resourcePrefix.hashCode());
+		return result;
+	}
+
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!super.equals(obj)) {
+			return false;
+		}
+		if (!(obj instanceof APIEvent_FileServer)) {
+			return false;
+		}
+		APIEvent_FileServer other = (APIEvent_FileServer) obj;
+		if (resourceBaseClass == null) {
+			if (other.resourceBaseClass != null) {
+				return false;
+			}
+		} else if (!resourceBaseClass.equals(other.resourceBaseClass)) {
+			return false;
+		}
+		if (resourcePrefix == null) {
+			if (other.resourcePrefix != null) {
+				return false;
+			}
+		} else if (!resourcePrefix.equals(other.resourcePrefix)) {
+			return false;
+		}
+		return true;
+	}
+
+
+	
+	
 }
 
 

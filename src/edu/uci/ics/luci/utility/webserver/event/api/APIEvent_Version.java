@@ -21,11 +21,14 @@
 
 package edu.uci.ics.luci.utility.webserver.event.api;
 
+import java.security.InvalidParameterException;
+
 import net.minidev.json.JSONObject;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import edu.uci.ics.luci.utility.webserver.event.Event;
 import edu.uci.ics.luci.utility.webserver.event.result.api.APIEventResult;
 
 public class APIEvent_Version extends APIEvent implements Cloneable{
@@ -55,10 +58,25 @@ public class APIEvent_Version extends APIEvent implements Cloneable{
 	
 
 	@Override
+	public void set(Event _incoming) {
+		APIEvent_Version incoming = null;
+		if(_incoming instanceof APIEvent_Version){
+			incoming = (APIEvent_Version) _incoming;
+			super.set(incoming);
+			this.setAPIVersion(incoming.getAPIVersion());
+		}
+		else{
+			getLog().error(ERROR_SET_ENCOUNTERED_TYPE_MISMATCH+", incoming:"+_incoming.getClass().getName()+", this:"+this.getClass().getName());
+			throw new InvalidParameterException(ERROR_SET_ENCOUNTERED_TYPE_MISMATCH+", incoming:"+_incoming.getClass().getName()+", this:"+this.getClass().getName());
+		}
+	}
+
+	@Override
 	public Object clone(){
 		return(super.clone());
 	}
-
+	
+	
 	
 	@Override
 	public APIEventResult onEvent() {
@@ -79,6 +97,39 @@ public class APIEvent_Version extends APIEvent implements Cloneable{
 		
 		return response;
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result
+				+ ((aPIVersion == null) ? 0 : aPIVersion.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!super.equals(obj)) {
+			return false;
+		}
+		if (!(obj instanceof APIEvent_Version)) {
+			return false;
+		}
+		APIEvent_Version other = (APIEvent_Version) obj;
+		if (aPIVersion == null) {
+			if (other.aPIVersion != null) {
+				return false;
+			}
+		} else if (!aPIVersion.equals(other.aPIVersion)) {
+			return false;
+		}
+		return true;
+	}
+	
+	
 
 }
 

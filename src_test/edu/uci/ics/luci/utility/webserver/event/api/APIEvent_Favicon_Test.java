@@ -21,7 +21,6 @@
 
 package edu.uci.ics.luci.utility.webserver.event.api;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -30,9 +29,6 @@ import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.security.InvalidParameterException;
 import java.util.HashMap;
-
-import net.minidev.json.JSONObject;
-import net.minidev.json.JSONValue;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.junit.After;
@@ -51,7 +47,7 @@ import edu.uci.ics.luci.utility.webserver.input.channel.socket.HTTPInputOverSock
 import edu.uci.ics.luci.utility.webserver.input.request.Request;
 import edu.uci.ics.luci.utility.webserver.output.channel.socket.Output_Socket_HTTP;
 
-public class APIEvent_Test {
+public class APIEvent_Favicon_Test {
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -111,8 +107,8 @@ public class APIEvent_Test {
 		try{
 			String version = System.currentTimeMillis()+"";
 		
-			APIEvent a = new APIEvent();
-			APIEvent b = (APIEvent) a.clone();
+			APIEvent_Favicon a = new APIEvent_Favicon(null);
+			APIEvent_Favicon b = (APIEvent_Favicon) a.clone();
 			
 			APIEvent_Version c = new APIEvent_Version(version);
 			
@@ -120,7 +116,7 @@ public class APIEvent_Test {
 			
 			assertTrue(!a.equals("Hello world"));
 			
-			assertTrue(a.equals(c));
+			assertTrue(!a.equals(c));
 			
 			assertTrue(a.equals(a));
 			assertTrue(a.hashCode() == a.hashCode());
@@ -131,34 +127,19 @@ public class APIEvent_Test {
 			assertTrue(b.equals(a));
 			assertTrue(b.hashCode() == a.hashCode());
 			
-			/*request equals */
-			a.setRequest(new Request());
+			/*ResourcePrefix equals */
+			//edu.uci.ics.luci.utility.Globals.class,"/www_test/");
+			a.setFavicon(new URIBuilder().setScheme("http"));
 			assertTrue(!a.equals(b));
 			assertTrue(!b.equals(a));
 			assertTrue(a.hashCode() != b.hashCode());
 			
-			b.setRequest(new Request());
+			b.setFavicon(new URIBuilder().setScheme("https"));
 			assertTrue(!a.equals(b));
 			assertTrue(!b.equals(a));
 			assertTrue(a.hashCode() != b.hashCode());
 			
-			b.setRequest(a.getRequest());
-			assertTrue(a.equals(b));
-			assertTrue(b.equals(a));
-			assertTrue(a.hashCode() == b.hashCode());
-			
-			/*output equals */
-			a.setOutput(new Output_Socket_HTTP(null));
-			assertTrue(!a.equals(b));
-			assertTrue(!b.equals(a));
-			assertTrue(a.hashCode() != b.hashCode());
-			
-			b.setOutput(new Output_Socket_HTTP(null));
-			assertTrue(!a.equals(b));
-			assertTrue(!b.equals(a));
-			assertTrue(a.hashCode() != b.hashCode());
-			
-			b.setOutput(a.getOutput());
+			b.setFavicon(a.getFavicon());
 			assertTrue(a.equals(b));
 			assertTrue(b.equals(a));
 			assertTrue(a.hashCode() == b.hashCode());
@@ -166,6 +147,7 @@ public class APIEvent_Test {
 			/*setting */
 			b.setRequest(new Request());
 			b.setOutput(new Output_Socket_HTTP(null));
+			b.setFavicon(new URIBuilder().setScheme("p2p"));
 			assertTrue(!a.equals(b));
 			a.set(b);
 			assertTrue(a.equals(b));
@@ -189,10 +171,14 @@ public class APIEvent_Test {
 	@Test
 	public void testWebServerSocket() {
 		
-		int port = APIEvent_Test.testPortPlusPlus();
+		int port = APIEvent_Favicon_Test.testPortPlusPlus();
 		boolean secure = false;
-		ws = APIEvent_Test.startAWebServerSocket(Globals.getGlobals(),port,secure);
-		ws.updateAPIRegistry("/event", new APIEvent());
+		ws = APIEvent_Favicon_Test.startAWebServerSocket(Globals.getGlobals(),port,secure);
+		ws.updateAPIRegistry(null, new APIEvent_Favicon(
+				new URIBuilder().setScheme("https")
+				.setHost("assets-cdn.github.com")
+				//.setPort(80)
+				.setPath("/favicon.ico")));
 
 		String responseString = null;
 		try {
@@ -200,7 +186,7 @@ public class APIEvent_Test {
 									.setScheme("http")
 									.setHost("localhost")
 									.setPort(ws.getInputChannel().getPort())
-									.setPath("/");
+									.setPath("/index.html");
 			responseString = WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
@@ -213,87 +199,7 @@ public class APIEvent_Test {
 			e.printStackTrace();
 			fail("URISyntaxException");
 		}
-		//System.out.println(responseString);
-
-		JSONObject response = null;
-		try {
-			response = (JSONObject) JSONValue.parse(responseString);
-			assertEquals("true",response.get("error"));
-		} catch (ClassCastException e) {
-			fail("Bad JSON Response");
-		}
-		
-		
-		
-		
-		responseString = null;
-		try {
-			URIBuilder uriBuilder = new URIBuilder()
-									.setScheme("http")
-									.setHost("localhost")
-									.setPort(ws.getInputChannel().getPort())
-									.setPath("/event");
-			responseString = WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-			fail("Bad URL");
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail("IO Exception");
-		}
-		catch (URISyntaxException e) {
-			e.printStackTrace();
-			fail("URISyntaxException");
-		}
-		//System.out.println(responseString);
-
-		response = null;
-		try {
-			response = (JSONObject) JSONValue.parse(responseString);
-			assertEquals("false",response.get("error"));
-		} catch (ClassCastException e) {
-			fail("Bad JSON Response");
-		}
-		
-		
-		
-		
-		/* Test callback parameter */
-		String callbackFunction = "foo"+System.currentTimeMillis();
-		responseString = null;
-		try {
-			URIBuilder uriBuilder = new URIBuilder()
-									.setScheme("http")
-									.setHost("localhost")
-									.setPort(ws.getInputChannel().getPort())
-									.setPath("/event")
-									.setParameter("callback", callbackFunction);
-			responseString = WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-			fail("Bad URL");
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail("IO Exception");
-		}
-		catch (URISyntaxException e) {
-			e.printStackTrace();
-			fail("URISyntaxException");
-		}
-		//System.out.println(responseString);
-
-		response = null;
-		try {
-			assertTrue(responseString.contains(callbackFunction));
-			/*Strip the callback*/
-			responseString = responseString.substring(callbackFunction.length()+1, responseString.length()-1);
-			response = (JSONObject) JSONValue.parse(responseString);
-			assertEquals("false",response.get("error"));
-		} catch (ClassCastException e) {
-			fail("Bad JSON Response");
-		}
-		
-		//Globals.getGlobals().setQuitting(true);
+		assertTrue(responseString.length() > 100 );
 
 	}
 

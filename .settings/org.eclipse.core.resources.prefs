@@ -1,2 +1,5 @@
 eclipse.preferences.version=1
+encoding//src_test/edu/uci/ics/luci/utility/webserver/event/api/APIEvent_Favicon_Test.java=UTF-8
+encoding//src_test/edu/uci/ics/luci/utility/webserver/event/api/APIEvent_FileServerSecure_Test.java=UTF-8
+encoding//src_test/edu/uci/ics/luci/utility/webserver/event/api/APIEvent_FileServer_Test.java=UTF-8
 encoding//src_test/edu/uci/ics/luci/utility/webserver/event/api/APIEvent_Test.java=UTF-8

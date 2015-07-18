@@ -51,6 +51,10 @@ public class APIEvent extends Event implements Cloneable{
 	private Request request = null;
 	private Output output = null;
 	
+	public APIEvent(){
+		super();
+	}
+	
 	protected Request getRequest() {
 		return request;
 	}
@@ -81,9 +85,6 @@ public class APIEvent extends Event implements Cloneable{
 		}
 	}
 	
-	public APIEvent(){
-		super();
-	}
 	
 	@Override
 	public Object clone(){
@@ -138,7 +139,7 @@ public class APIEvent extends Event implements Cloneable{
 		response.setDataType(APIEventResult.DataType.JSON);
 		response.setResponseBody(wrapCallback(getRequest().getParameters(),ret.toString()));
 		
-		getLog().info("APIEvent Executed");
+		getLog().info(this.getClass().getSimpleName()+" Executed");
 		return response;
 	}
 

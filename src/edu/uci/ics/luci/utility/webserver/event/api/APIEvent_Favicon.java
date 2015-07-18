@@ -22,11 +22,13 @@
 package edu.uci.ics.luci.utility.webserver.event.api;
 
 import java.net.URISyntaxException;
+import java.security.InvalidParameterException;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import edu.uci.ics.luci.utility.webserver.event.Event;
 import edu.uci.ics.luci.utility.webserver.event.result.api.APIEventResult;
 
 public class APIEvent_Favicon extends APIEvent implements Cloneable{
@@ -40,22 +42,43 @@ public class APIEvent_Favicon extends APIEvent implements Cloneable{
 	}
 
 	private URIBuilder favicon;
+	
+
+	public URIBuilder getFavicon() {
+		return favicon;
+	}
+
+	public void setFavicon(URIBuilder favicon) {
+		this.favicon = favicon;
+	}
 
 	public APIEvent_Favicon(URIBuilder favicon) {
 		super();
 		
 		if(favicon != null){
 			try {
-				this.favicon = new URIBuilder(favicon.build());
+				setFavicon(new URIBuilder(favicon.build()));
 			} catch (URISyntaxException e) {
 				getLog().info(e);
+				setFavicon(null);
 			}
 		}
-		if(this. favicon == null){
-			this.favicon = new URIBuilder().setScheme("http")
-					.setHost("djp3-pc7.ics.uci.edu")
-					.setPort(80)
-					.setPath("/cacophony-dev/projects/cacophony/repository/revisions/production/raw/cacophony/doc/graphics/favicon.ico");
+		else{
+			setFavicon(null);
+		}
+	}
+	
+	@Override
+	public void set(Event _incoming) {
+		APIEvent_Favicon incoming = null;
+		if(_incoming instanceof APIEvent_Favicon){
+			incoming = (APIEvent_Favicon) _incoming;
+			super.set(incoming);
+			setFavicon(incoming.getFavicon());
+		}
+		else{
+			getLog().error(ERROR_SET_ENCOUNTERED_TYPE_MISMATCH+", incoming:"+_incoming.getClass().getName()+", this:"+this.getClass().getName());
+			throw new InvalidParameterException(ERROR_SET_ENCOUNTERED_TYPE_MISMATCH+", incoming:"+_incoming.getClass().getName()+", this:"+this.getClass().getName());
 		}
 	}
 	
@@ -83,6 +106,39 @@ public class APIEvent_Favicon extends APIEvent implements Cloneable{
 		getLog().info("Favicon response:"+response.getResponseBody());
 		return response;
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((favicon == null) ? 0 : favicon.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!super.equals(obj)) {
+			return false;
+		}
+		if (!(obj instanceof APIEvent_Favicon)) {
+			return false;
+		}
+		APIEvent_Favicon other = (APIEvent_Favicon) obj;
+		if (favicon == null) {
+			if (other.favicon != null) {
+				return false;
+			}
+		} else if (!favicon.equals(other.favicon)) {
+			return false;
+		}
+		return true;
+	}
+	
+	
+	
 
 }
 

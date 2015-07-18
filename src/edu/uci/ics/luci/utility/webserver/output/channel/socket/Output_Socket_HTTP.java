@@ -159,7 +159,8 @@ public class Output_Socket_HTTP extends Output{
 	public void send_Proxy(APIEventResult response){
 		String responseString = null;
 		try {
-			URIBuilder uriBuilder = new URIBuilder(response.getResponseBody());
+			String responseBody = response.getResponseBody();
+			URIBuilder uriBuilder = new URIBuilder(responseBody);
 			responseString = WebUtil.fetchWebPage(
 					uriBuilder,
 					null,

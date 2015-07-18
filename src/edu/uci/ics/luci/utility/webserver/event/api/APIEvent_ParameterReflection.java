@@ -21,6 +21,7 @@
 
 package edu.uci.ics.luci.utility.webserver.event.api;
 
+import java.security.InvalidParameterException;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -30,6 +31,7 @@ import net.minidev.json.JSONObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import edu.uci.ics.luci.utility.webserver.event.Event;
 import edu.uci.ics.luci.utility.webserver.event.result.api.APIEventResult;
 
 public class APIEvent_ParameterReflection extends APIEvent implements Cloneable{
@@ -46,6 +48,20 @@ public class APIEvent_ParameterReflection extends APIEvent implements Cloneable{
 		super();
 	}
 
+	
+	@Override
+	public void set(Event _incoming) {
+		APIEvent_ParameterReflection incoming = null;
+		if(_incoming instanceof APIEvent_ParameterReflection){
+			incoming = (APIEvent_ParameterReflection) _incoming;
+			super.set(incoming);
+		}
+		else{
+			getLog().error(ERROR_SET_ENCOUNTERED_TYPE_MISMATCH+", incoming:"+_incoming.getClass().getName()+", this:"+this.getClass().getName());
+			throw new InvalidParameterException(ERROR_SET_ENCOUNTERED_TYPE_MISMATCH+", incoming:"+_incoming.getClass().getName()+", this:"+this.getClass().getName());
+		}
+	}
+	
 	@Override
 	public Object clone(){
 		return(super.clone());
@@ -80,8 +96,38 @@ public class APIEvent_ParameterReflection extends APIEvent implements Cloneable{
 		response.setDataType(APIEventResult.DataType.JSON);
 		response.setResponseBody(wrapCallback(getRequest().getParameters(),ret.toString()));
 		
+		getLog().info(this.getClass().getSimpleName()+" Executed");
 		return response;
 	}
+	
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result;
+		return result;
+	}
+
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!super.equals(obj)) {
+			return false;
+		}
+		if (!(obj instanceof APIEvent_ParameterReflection)) {
+			return false;
+		}
+		return true;
+	}
+	
+	
+	
+	
+	
 }
 
 

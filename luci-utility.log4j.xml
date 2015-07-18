@@ -31,6 +31,14 @@
 			<AppenderRef ref="STDERR" />
 			<AppenderRef ref="RollingRandomAccessFile" />
 		</AsyncLogger>
+		<AsyncLogger name="edu.uci.ics.luci.utility.webserver.AccessControl" level="errors" includeLocation="false" additivity="false">
+			<AppenderRef ref="STDERR" />
+			<AppenderRef ref="RollingRandomAccessFile" />
+		</AsyncLogger>
+		<AsyncLogger name="edu.uci.ics.luci.utility.webserver.input.channel.socket" level="debug" includeLocation="true" additivity="false">
+			<AppenderRef ref="STDERR" />
+			<AppenderRef ref="RollingRandomAccessFile" />
+		</AsyncLogger>
 		<AsyncLogger name="edu.uci.ics.luci" level="trace" includeLocation="true" additivity="false">
 			<AppenderRef ref="STDERR" />
 			<AppenderRef ref="RollingRandomAccessFile" />

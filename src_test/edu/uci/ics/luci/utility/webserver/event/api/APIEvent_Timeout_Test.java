@@ -1,17 +1,14 @@
 package edu.uci.ics.luci.utility.webserver.event.api;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.net.URISyntaxException;
 import java.security.InvalidParameterException;
 import java.util.HashMap;
-
-import net.minidev.json.JSONObject;
-import net.minidev.json.JSONValue;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.junit.After;
@@ -28,7 +25,7 @@ import edu.uci.ics.luci.utility.webserver.event.EventVoid;
 import edu.uci.ics.luci.utility.webserver.input.request.Request;
 import edu.uci.ics.luci.utility.webserver.output.channel.socket.Output_Socket_HTTP;
 
-public class APIEvent_Error_Test {
+public class APIEvent_Timeout_Test {
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -59,10 +56,10 @@ public class APIEvent_Error_Test {
 		try{
 			String version = System.currentTimeMillis()+"";
 		
-			APIEvent_Error a = new APIEvent_Error(version);
-			APIEvent_Error b = (APIEvent_Error) a.clone();
+			APIEvent_TimeOut a = new APIEvent_TimeOut();
+			APIEvent_TimeOut b = (APIEvent_TimeOut) a.clone();
 			
-			APIEvent_Version c = new APIEvent_Version(version);
+			APIEvent_Error c = new APIEvent_Error(version);
 			
 			assertTrue(!a.equals(null));
 			
@@ -79,10 +76,27 @@ public class APIEvent_Error_Test {
 			assertTrue(b.equals(a));
 			assertTrue(b.hashCode() == a.hashCode());
 			
+			/*parameter equals */
+			a.setTimeOuter(new Thread());
+			assertTrue(!a.equals(b));
+			assertTrue(!b.equals(a));
+			assertTrue(a.hashCode() != b.hashCode());
+			
+			b.setTimeOuter(new Thread());
+			assertTrue(!a.equals(b));
+			assertTrue(!b.equals(a));
+			assertTrue(a.hashCode() != b.hashCode());
+			
+			b.setTimeOuter(a.getTimeOuter());
+			assertTrue(a.equals(b));
+			assertTrue(b.equals(a));
+			assertTrue(a.hashCode() == b.hashCode());
+			
 			
 			/*setting */
 			b.setRequest(new Request());
 			b.setOutput(new Output_Socket_HTTP(null));
+			b.setTimeOuter(new Thread());
 			assertTrue(!a.equals(b));
 			a.set(b);
 			assertTrue(a.equals(b));
@@ -104,43 +118,55 @@ public class APIEvent_Error_Test {
 	
 	@Test
 	public void testWebServerSocket() {
-		String version = System.currentTimeMillis()+"";
 		
 		int port = APIEvent_Test.testPortPlusPlus();
 		boolean secure = false;
 		ws = APIEvent_Test.startAWebServerSocket(Globals.getGlobals(),port,secure);
-		ws.updateAPIRegistry("/error", new APIEvent_Error(version));
+		ws.updateAPIRegistry("/test", new APIEvent_TimeOut());
 
-		String responseString = null;
 		try {
 			URIBuilder uriBuilder = new URIBuilder()
 									.setScheme("http")
 									.setHost("localhost")
 									.setPort(ws.getInputChannel().getPort())
-									.setPath("/error");
-			responseString = WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
+									.setPath("/test");
+			WebUtil.fetchWebPage(uriBuilder, null,null, null, 2 * 1000);
+			fail("This should time out");
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 			fail("Bad URL");
+		} catch (SocketTimeoutException e) {
+			/* This is what we want to happen */
 		} catch (IOException e) {
 			e.printStackTrace();
-			fail("IO Exception");
-		}
-		catch (URISyntaxException e) {
+			fail("Bad URL");
+		}catch (URISyntaxException e) {
 			e.printStackTrace();
 			fail("URISyntaxException");
 		}
-		System.out.println(responseString);
-
-		JSONObject response = null;
+		
+		
 		try {
-			response = (JSONObject) JSONValue.parse(responseString);
-			assertEquals("true",response.get("error"));
-		} catch (ClassCastException e) {
-			fail("Bad JSON Response");
+			URIBuilder uriBuilder = new URIBuilder()
+									.setScheme("http")
+									.setHost("localhost")
+									.setPort(ws.getInputChannel().getPort())
+									.setPath("/test");
+			WebUtil.fetchWebPage(uriBuilder, null,null, null, 2 * 1000);
+			fail("This should time out");
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+			fail("Bad URL");
+		} catch (SocketTimeoutException e) {
+			/* This is what we want to happen */
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail("Bad URL");
+		}catch (URISyntaxException e) {
+			e.printStackTrace();
+			fail("URISyntaxException");
 		}
 		
-		//Globals.getGlobals().setQuitting(true);
 
 	}
 

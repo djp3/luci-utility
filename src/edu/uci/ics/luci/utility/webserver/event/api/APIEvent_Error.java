@@ -21,12 +21,15 @@
 
 package edu.uci.ics.luci.utility.webserver.event.api;
 
+import java.security.InvalidParameterException;
+
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import edu.uci.ics.luci.utility.webserver.event.Event;
 import edu.uci.ics.luci.utility.webserver.event.result.api.APIEventResult;
 
 public class APIEvent_Error extends APIEvent_Version implements Cloneable{ 
@@ -39,14 +42,23 @@ public class APIEvent_Error extends APIEvent_Version implements Cloneable{
 		return log;
 	}
 	
-	/**
-	 *  This is just so I can 
-	 */
-	private final long serialVersionUID = -2846124664983395047L;
-	
 	public APIEvent_Error(String version) {
 		super(version);
 	}
+	
+	@Override
+	public void set(Event _incoming) {
+		APIEvent_Error incoming = null;
+		if(_incoming instanceof APIEvent_Error){
+			incoming = (APIEvent_Error) _incoming;
+			super.set(incoming);
+		}
+		else{
+			getLog().error(ERROR_SET_ENCOUNTERED_TYPE_MISMATCH+", incoming:"+_incoming.getClass().getName()+", this:"+this.getClass().getName());
+			throw new InvalidParameterException(ERROR_SET_ENCOUNTERED_TYPE_MISMATCH+", incoming:"+_incoming.getClass().getName()+", this:"+this.getClass().getName());
+		}
+	}
+	
 	
 
 	@Override
@@ -67,16 +79,14 @@ public class APIEvent_Error extends APIEvent_Version implements Cloneable{
 			
 		ret.put("error", "true");
 		JSONArray errors = (JSONArray) ret.get("errors");
-		if(errors == null){
-			errors = new JSONArray();
-		}
 		errors.add("Intentional error in response to query:"+getRequest().getCommand());
 		ret.put("errors",errors);
 		
 		response.setStatus(APIEventResult.Status.OK);
 		response.setDataType(APIEventResult.DataType.JSON);
 		response.setResponseBody(wrapCallback(getRequest().getParameters(),ret.toString()));
-					
+		
+		getLog().info(this.getClass().getSimpleName()+" Executed");
 		return response;
 	}
 
@@ -85,8 +95,7 @@ public class APIEvent_Error extends APIEvent_Version implements Cloneable{
 	public int hashCode() {
 		final int prime = 31;
 		int result = super.hashCode();
-		result = prime * result
-				+ (int) (serialVersionUID ^ (serialVersionUID >>> 32));
+		result = prime * result;
 		return result;
 	}
 
@@ -100,10 +109,6 @@ public class APIEvent_Error extends APIEvent_Version implements Cloneable{
 			return false;
 		}
 		if (!(obj instanceof APIEvent_Error)) {
-			return false;
-		}
-		APIEvent_Error other = (APIEvent_Error) obj;
-		if (serialVersionUID != other.serialVersionUID) {
 			return false;
 		}
 		return true;

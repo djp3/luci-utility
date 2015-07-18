@@ -309,7 +309,8 @@ public class HTTPInputOverSocket extends Input{
 			
 			return new MyHandler(localSocket.getInetAddress().toString(),conn);
 		} catch(SocketTimeoutException e){
-			getLog().debug("Socket timed out\n"+e);
+			/* This is a common exception */
+			getLog().trace("Socket timed out\n"+e);
 			return null;
 		} catch (IOException e) {
 			getLog().debug("Socket timed out\n"+e);

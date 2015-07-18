@@ -81,7 +81,9 @@ public class APIEventResult_HTTP extends APIEventResult {
 			} else if (status.equals(APIEventResult.Status.REDIRECT)) {
 				setHttpStatus(HttpStatus.SC_TEMPORARY_REDIRECT);
 			} else if (status.equals(APIEventResult.Status.PROXY)) {
-				setHttpStatus(HttpStatus.SC_USE_PROXY);
+				setHttpStatus(HttpStatus.SC_OK);
+				//The proxy response seems right, but it throws an exception 
+				//setHttpStatus(HttpStatus.SC_USE_PROXY);
 			} else if (status.equals(APIEventResult.Status.NOT_FOUND)) {
 				setHttpStatus(HttpStatus.SC_NOT_FOUND);
 			} else {
@@ -105,6 +107,8 @@ public class APIEventResult_HTTP extends APIEventResult {
 				updateHttpHeaders(getContentTypeHeader_PNG());
 			} else if (dataType.equals(APIEventResult.DataType.JAVASCRIPT)) {
 				updateHttpHeaders(getContentTypeHeader_JS());
+			} else if (dataType.equals(APIEventResult.DataType.PROXYSTRING)) {
+				//Don't do anything
 			} else {
 				throw new IllegalArgumentException("Unhandled case: "
 						+ dataType.toString());

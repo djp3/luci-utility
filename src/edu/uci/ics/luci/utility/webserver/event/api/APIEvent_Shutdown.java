@@ -20,12 +20,15 @@
 */
 package edu.uci.ics.luci.utility.webserver.event.api;
 
+import java.security.InvalidParameterException;
+
 import net.minidev.json.JSONObject;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import edu.uci.ics.luci.utility.Quittable;
+import edu.uci.ics.luci.utility.webserver.event.Event;
 import edu.uci.ics.luci.utility.webserver.event.result.api.APIEventResult;
 
 public class APIEvent_Shutdown extends APIEvent { 
@@ -44,12 +47,36 @@ public class APIEvent_Shutdown extends APIEvent {
 		super();
 		this.q = q;
 	}
+	
+
+	public Quittable getQuittable() {
+		return q;
+	}
+
+	public void setQuittable(Quittable q) {
+		this.q = q;
+	}
+
+	@Override
+	public void set(Event _incoming) {
+		APIEvent_Shutdown incoming = null;
+		if(_incoming instanceof APIEvent_Shutdown){
+			incoming = (APIEvent_Shutdown) _incoming;
+			super.set(incoming);
+			this.setQuittable(incoming.getQuittable());
+		}
+		else{
+			getLog().error(ERROR_SET_ENCOUNTERED_TYPE_MISMATCH+", incoming:"+_incoming.getClass().getName()+", this:"+this.getClass().getName());
+			throw new InvalidParameterException(ERROR_SET_ENCOUNTERED_TYPE_MISMATCH+", incoming:"+_incoming.getClass().getName()+", this:"+this.getClass().getName());
+		}
+	}
 
 	@Override
 	public Object clone(){
 		return(super.clone());
 	}
 	
+
 	
 	@Override
 	public APIEventResult onEvent() {
@@ -70,6 +97,42 @@ public class APIEvent_Shutdown extends APIEvent {
 		
 		return response;
 	}
+
+
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((q == null) ? 0 : q.hashCode());
+		return result;
+	}
+
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!super.equals(obj)) {
+			return false;
+		}
+		if (!(obj instanceof APIEvent_Shutdown)) {
+			return false;
+		}
+		APIEvent_Shutdown other = (APIEvent_Shutdown) obj;
+		if (q == null) {
+			if (other.q != null) {
+				return false;
+			}
+		} else if (!q.equals(other.q)) {
+			return false;
+		}
+		return true;
+	}
+	
+	
+	
 }
 
 
