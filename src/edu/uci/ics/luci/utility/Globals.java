@@ -1,6 +1,6 @@
 /*
-	Copyright 2007-2015
-	University of California, Irvine (c/o Donald J. Patterson)
+	Copyright 2007-2018
+		Donald J. Patterson 
 */
 /*
 	This file is part of the Laboratory for Ubiquitous Computing java Utility package, i.e. "Utilities"
@@ -21,9 +21,8 @@
 
 package edu.uci.ics.luci.utility;
 
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.List;
+import java.util.Random;
 import java.util.TimeZone;
 
 import org.apache.logging.log4j.LogManager;
@@ -32,8 +31,27 @@ import org.apache.logging.log4j.Logger;
 import edu.uci.ics.luci.utility.webserver.event.api.login.DatastoreSQLite;
 
 
+/**
+ * This is a Globals class that follows the singleton pattern (sort of) for maintaining
+ * global variables for the Utilities.
+ * 
+ * The main deviation is that this is an abstract class, so the singleton needs to be set by an
+ * implementing class before there will be one to get. Something like Globals.setGlobals(new MyGlobals())
+ * 
+ * This class by default manages
+ * 	 whether or not the system is in testing mode
+ *   whether or not the system is quitting
+ *   the things that need to be quit when the system shuts down.
+ *   a global Calendar cache
+ *   a system version
+ *   a database connection
+ * 
+ * @author djp3
+ *
+ */
 public abstract class Globals implements Quittable{
 	
+	/* Class logger */
 	private static transient volatile Logger log = null;
 	public static Logger getLog(){
 		if(log == null){
@@ -42,53 +60,90 @@ public abstract class Globals implements Quittable{
 		return log;
 	}
 	
-	private static final String LOG4J_CONFIG_FILE_DEFAULT = "luci-utility.log4j.xml";
+	/* Convenience constants */
+	static final long ONE_SECOND = 1000;
+	static final long ONE_MINUTE = 60 * ONE_SECOND;
+	
+	/* Source of randomness for the whole app */
+	private static final Random random = new Random(System.currentTimeMillis() - 93845);
+	
+	/* Singleton variable */
+	private static Globals singleton = null;
 	
 	static{
-		setLog4JPropertyFileName(LOG4J_CONFIG_FILE_DEFAULT);
 		DatastoreSQLite.initializeSQLite();
 	}
 	
-	public static String getLog4JPropertyFileName() {
-		return System.getProperty("log4j.configurationFile");
-	}
-	
-	public static void setLog4JPropertyFileName(String propertyFileName) {
-		System.setProperty("log4j.configurationFile",propertyFileName);
-	}
-	
-	static protected Globals _globals = null;
-	
+	/**
+	 * This method provides access to the global singleton
+	 * @return the current Globals singleton object or null if it has not been set
+	 */
 	public static synchronized Globals getGlobals(){
-		return _globals;
+		return singleton;
 	}
 	
-	public static synchronized Globals setGlobals(Globals _globals) {
-		return(Globals._globals = _globals);
+	/**
+	 * Replace the current global singleton with a new one
+	 * @param g
+	 * @return
+	 */
+	public static synchronized void setGlobals(Globals g) {
+		singleton = g;
 	}
 	
-	private String databaseDomain = "localhost";
+	/**
+	 * Access to the global source of randomness
+	 * @return a singleton Random object
+	 */
+	public static synchronized Random getRandom() {
+		return random;
+	}
 	
-	private Shutdown quittables = null;
-	private CalendarCache calendarCache = null;
 	
+	/*** Class variables ***/
 	private boolean shuttingDown = false;
 	private boolean testing = true;
 	
+	private Shutdown shutUsDown = null;
+	
+	private CalendarCache calendarCache = null;
+	
+	private String databaseDomain = "localhost";
+	
+	
+	
+	/**
+	 * Constructor for the singleton class
+	 */
 	protected Globals(){
 		super();
-		getLog().trace("Static Evaluation of "+Globals.class.getCanonicalName()+" complete");
+		/* Set up the logging utility information based on abstract methods*/
+		setLog4JPropertyFileName(getLog4JPropertyFileName());
 		
-		calendarCache = new CalendarCache(CalendarCache.TZ_GMT);
+		/* Set up the calendar cache */
+		calendarCache = CalendarCache.getCalendarCache();
 		
-		quittables = new Shutdown(new ArrayList<Quittable>());
-		Thread t = new Thread(quittables);
+		/* Create an system for automatically shutting down classes on hard quit */
+		shutUsDown = new Shutdown();
+		Thread t = new Thread(shutUsDown);
 		t.setName("ShutdownHook Shutdown Thread");
 		t.setDaemon(false);
 		Runtime.getRuntime().addShutdownHook(t);
+		
+		/* Test that we are using UTC as the default */
+		if (!TimeZone.getDefault().equals(CalendarCache.TZ_UTC)) {
+			throw new RuntimeException("We are in the wrong timezone:\n" + TimeZone.getDefault()
+					+ "\n We want to be in:\n " + CalendarCache.TZ_UTC);
+		}
+
+		/* Test that we are using UTF-8 as default */
+		String c = java.nio.charset.Charset.defaultCharset().name();
+		if (!c.equals("UTF-8")) {
+			throw new IllegalArgumentException("The character set is not UTF-8:" + c);
+		}
 	}
 	
-	public String getDatabaseDomain() {
+	public String getDatabaseHost() {
 		return databaseDomain;
 	}
 	
@@ -100,10 +155,19 @@ public abstract class Globals implements Quittable{
 		return databaseDomain;
 	}
 	
+	/*
 	public List<String> getBadGuyList() {
 		return(new ArrayList<String>());
-	}
+	}*/
 	
+	
+	
+	/***   Support for clean global shutdowns ***/
+	
+	/**
+	 * Add something to the list of things to be notified when the system is shutting down
+	 * @param q an object to be notified
+	 */
 	public synchronized void addQuittable(Quittable q){
 		if(q != null){
 			if(shuttingDown){
@@ -112,11 +176,7 @@ public abstract class Globals implements Quittable{
 				}
 			}
 			else{
-				synchronized(quittables){
-					synchronized(q){
-						this.quittables.add(q);
-					}
-				}
+				this.shutUsDown.add(q);
 			}
 		}
 	}
@@ -142,14 +202,14 @@ public abstract class Globals implements Quittable{
 				StackTraceElement[] st = e.getStackTrace();
 				StringBuffer sb = new StringBuffer();
 				for(int i = 0 ; i< st.length; i++){
-					sb.append(st[i].toString()+"\n");
+					sb.append("\t"+st[i].toString()+"\n");
 				}
 				getLog().trace("Here's who shut us down\n"+sb);
 				
 				Thread t;
-				synchronized(quittables){
+				synchronized(shutUsDown){
 					shuttingDown = true;
-					t = new Thread(quittables);
+					t = new Thread(shutUsDown);
 					t.setName("Shutdown Thread");
 					t.setDaemon(false);
 					t.start();
@@ -169,7 +229,7 @@ public abstract class Globals implements Quittable{
 				getLog().fatal("Trying to undo a shutdown! Can't do that");
 			}
 			else{
-				getLog().warn("Trying to shutdown twice! Can't do that");
+				getLog().info("Trying to shutdown twice! No harm done...");
 			}
 		}
 	}
@@ -178,24 +238,57 @@ public abstract class Globals implements Quittable{
 		return shuttingDown;
 	}
 
+	/** Global testing setting management **/
 	
 	public boolean isTesting(){
 		return testing;
 	}
 	
-	public void setTesting(Boolean testing){
-		if(testing == null){
-			this.testing = true;
-		}
-		else{
-			this.testing = testing;
-		}
+	public void setTesting() {
+		setTesting(true);
 	}
 	
-	public Calendar getCalendar(TimeZone tz){
+	public void setTesting(boolean testing){
+		this.testing = testing;
+	}
+	
+	/******** Global calendar management *******/
+	
+	public Calendar getCalendar(String tz){
 		return calendarCache.getCalendar(tz);
 	}
 	
-	public abstract String getSystemVersion();
+	public Calendar getCalendar(TimeZone tz){
+		return calendarCache.getCalendar(tz.getID());
+	}
+	
+	
+	/*******  Log4j support *******/
+	/**
+	 * a method that points the class to the correct file location for the 
+	 * logging configuration.
+	 * See GlobalsTest for a possible implementation
+	 * @return The file name of the log4J configuration file
+	 */
+	abstract protected String getLog4JPropertyFileName();
+	
+	/**
+	 * a method that sets correct file location for the 
+	 * log4j logging configuration.
+	 * @param propertyFileName The file name of the log4J configuration file
+	 */
+	protected void setLog4JPropertyFileName(String propertyFileName) {
+		/* This sets all loggers to be asynchronous for performance */
+		/* See https://logging.apache.org/log4j/2.x/manual/async.html */
+		System.setProperty("log4j2.contextSelector","org.apache.logging.log4j.core.async.AsyncLoggerContextSelector");
+		/* This is where log4j looks for it's configuration file name */
+		System.setProperty("log4j.configurationFile",propertyFileName);
+	}
+	
+	/**
+	 * a method that returns some representation of the system version
+	 * @return the system version
+	 */
+	abstract protected String getSystemVersion();
 
 }
