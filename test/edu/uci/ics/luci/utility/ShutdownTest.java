@@ -69,7 +69,7 @@ public class ShutdownTest {
 		}
 	}
 	
-	private class ShutdownTestHelper implements Quittable{
+	private static class ShutdownTestHelper implements Quittable{
 		Object lock = new Object();
 		boolean hasBeenQuit = false;
 
