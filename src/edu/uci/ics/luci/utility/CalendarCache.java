@@ -1,6 +1,6 @@
 /*
-	Copyright 2007-2015
-		University of California, Irvine (c/o Donald J. Patterson)
+	Copyright 2007-2018
+		Donald J. Patterson 
 */
 /*
 	This file is part of the Laboratory for Ubiquitous Computing java Utility package, i.e. "Utilities"
@@ -22,82 +22,106 @@
 package edu.uci.ics.luci.utility;
 
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 
 public class CalendarCache {
 	public transient static final TimeZone TZ_LosAngeles = TimeZone.getTimeZone("America/Los_Angeles");
+	public transient static final TimeZone TZ_UTC = TimeZone.getTimeZone("UTC");
 	
-	public transient static final TimeZone TZ_GMT = TimeZone.getTimeZone("GMT");
+	private transient static String defaultTimeZoneS;
+	private transient static TimeZone defaultTimeZoneTZ;
 	
-	private transient static String defaultTimeZoneS = TZ_LosAngeles.getID();
-	private transient static TimeZone defaultTimeZoneTZ = TZ_LosAngeles;
+	private transient static Map<String,Calendar> cache;
 	
-	private transient static Map<String,Calendar> cache = new HashMap<String,Calendar>();
+	/****** Singleton *******/
+	private static final Object lock = new Object();
+	private static CalendarCache calendarCache;
 	
-	public static final CalendarCache calendarCache = new CalendarCache();
-	
-	public static synchronized String getDefaultTimeZoneS() {
-		return defaultTimeZoneS;
-	}
-
-	public static synchronized void setDefaultTimeZoneS(String defaultTimeZoneS) {
-		CalendarCache.defaultTimeZoneS = defaultTimeZoneS;
-	}
-
-	public static synchronized TimeZone getDefaultTimeZoneTZ() {
-		return defaultTimeZoneTZ;
-	}
-
-	public static synchronized void setDefaultTimeZoneTZ(TimeZone defaultTimeZoneTZ) {
-		CalendarCache.defaultTimeZoneTZ = defaultTimeZoneTZ;
-	}
-
-	public CalendarCache(){
-	}
-	
-	public CalendarCache(String s){
-		if(s == null){
-			throw new IllegalArgumentException("Could not resolve null string to a TimeZone");
-		}
-		
-		boolean match = false;
-		for(String ctz:TimeZone.getAvailableIDs()){
-			if(s.equals(ctz)){
-				match = true;
+	public static CalendarCache getCalendarCache(){
+		synchronized(lock) {
+			if(calendarCache == null) {
+				return new CalendarCache();
+			}
+			else {
+				return calendarCache;
 			}
 		}
-		
-		if(!match){
-			throw new IllegalArgumentException("Could not resolve string:"+s+" to a TimeZone");
-		}
-		
-		TimeZone n = TimeZone.getTimeZone(s);
-		
-		setDefaultTimeZoneTZ(n);
-		setDefaultTimeZoneS(s);
 	}
 	
-	public CalendarCache(TimeZone tz){
-		if(tz == null){
-			throw new IllegalArgumentException("Could not resolve null TimeZone to a String");
+	private CalendarCache(){
+		synchronized(lock) {
+			reset();
+			calendarCache = this;
 		}
-		
-		String n = tz.getID();
-		
-		if(n == null){
-			throw new IllegalArgumentException("Could not resolve null TimeZone to a String");
+	};
+	
+	public static void resetDefaults() {
+		synchronized(lock) {
+			defaultTimeZoneS = TZ_UTC.getID();
+			defaultTimeZoneTZ = TZ_UTC;
 		}
-		
-		setDefaultTimeZoneTZ(tz);
-		setDefaultTimeZoneS(n);
 	}
 	
-	public void clear(){
-		cache.clear();
+	public static void resetCache() {
+		synchronized(lock) {
+			cache = Collections.synchronizedMap(new HashMap<String,Calendar>());
+		}
+	}
+	
+	public static void reset() {
+		synchronized(lock) {
+			resetDefaults();
+			resetCache();
+		}
+	}
+	
+	
+	
+	/***********************/
+	
+	public static String getDefaultTimeZoneS() {
+		synchronized(lock) {
+			return defaultTimeZoneS;
+		}
+	}
+	
+	public static TimeZone getDefaultTimeZoneTZ() {
+		synchronized(lock) {
+			return defaultTimeZoneTZ;
+		}
+	}
+	
+	private static TimeZone findTimeZone(String tz) {
+		for(String ctz:TimeZone.getAvailableIDs()){
+			if(tz.equals(ctz)){
+				return TimeZone.getTimeZone(tz);
+			}
+		}
+		return null;
 	}
 
+	public static void setDefaultTimeZone(String defaultTimeZone) {
+		TimeZone n = findTimeZone(defaultTimeZone);
+		if(n != null) {
+			synchronized(lock) {
+				defaultTimeZoneS = defaultTimeZone;
+				defaultTimeZoneTZ = n;
+			}
+		}
+		else {
+			throw new IllegalArgumentException("Could not resolve string:"+defaultTimeZone+" to a TimeZone");
+		}
+	}
+
+
+	/**
+	 * Get a particular calendar for a time zone from the cache
+	 * @param tz The string description of the Calendar's time zone.  Null or "" to get the default.
+	 * @return The cached calendar corresponding to @param tz
+	 */
 	public Calendar getCalendar(String tz) {
 		if((tz == null)||(tz.length()==0)){
 			tz = defaultTimeZoneS;
@@ -106,27 +130,19 @@ public class CalendarCache {
 		/* Get a calendar. Check cache first */
 		Calendar c = cache.get(tz);
 		if(c == null){
-			TimeZone usersTimeZone = TimeZone.getTimeZone(tz);
-			c = Calendar.getInstance(usersTimeZone);
-			cache.put(tz,(Calendar) c.clone());
+			TimeZone usersTimeZone = findTimeZone(tz);
+			if(usersTimeZone != null) {
+				c = Calendar.getInstance(usersTimeZone);
+				cache.put(tz,(Calendar) c.clone());
+			}
+			else {
+				throw new IllegalArgumentException("Could not resolve string:"+tz+" to a TimeZone");
+			}
 		}
 		return c;
 	}
 	
-	public Calendar getCalendar(TimeZone usersTimeZone) {
-		
-		if(usersTimeZone == null){
-			usersTimeZone = defaultTimeZoneTZ;
-		}
-		
-		/* Get a calendar. Check cache first */
-		String tz = usersTimeZone.getID();
-		Calendar c = cache.get(tz);
-		if(c == null){
-			c = Calendar.getInstance(usersTimeZone);
-			cache.put(tz,(Calendar) c.clone());
-		}
-		return c;
+	public Calendar getCalendar() {
+		return getCalendar(null);
 	}
-
 }
