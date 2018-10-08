@@ -21,7 +21,9 @@
 
 package edu.uci.ics.luci.utility;
 
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Random;
 import java.util.TimeZone;
 
@@ -155,10 +157,13 @@ public abstract class Globals implements Quittable{
 		return databaseDomain;
 	}
 	
-	/*
+	/**
+	 * A list of hosts to block from webserver accesses
+	 * @return The list of hosts to block
+	 */
 	public List<String> getBadGuyList() {
 		return(new ArrayList<String>());
-	}*/
+	}
 	
 	
 	
@@ -270,7 +275,7 @@ public abstract class Globals implements Quittable{
 	 * See GlobalsTest for a possible implementation
 	 * @return The file name of the log4J configuration file
 	 */
-	abstract protected String getLog4JPropertyFileName();
+	public abstract String getLog4JPropertyFileName();
 	
 	/**
 	 * a method that sets correct file location for the 
@@ -289,6 +294,6 @@ public abstract class Globals implements Quittable{
 	 * a method that returns some representation of the system version
 	 * @return the system version
 	 */
-	abstract protected String getSystemVersion();
+	public abstract String getSystemVersion();
 
 }

@@ -7,68 +7,71 @@ GoDaddy) to sign your csr.  Then you need to import their chain of certificates
 in to your keystore instead. You can skip everything on the linux box. Some hints at the end.
 
 I followed http://www.zytrax.com/tech/survival/ssl.html#root-ca "Method 3" to create a self-signed root certificate:
-	1) logged into a linux box
-	2) made a working directory with a copy of CA.pl and openssl.conf that I modified based on the tutorial
-	3) enabled my user account to get randomness:
+	1) logged into a linux box (e.g., the linux virtual machine on my mac )
+	2) moved to a working directory (/etc/ssl) with a copy of CA.pl and openssl.conf that I modified based on the tutorial
+		added a subdirectory "ca" that was reflected in CA.pl and openssl.conf and was owned by djp3:djp3
+	3) (did not need to do this on the mac vm)
+			enabled my user account to get randomness:
 			sudo chown djp3:djp3 ~/.rnd
 	4) I backed up /etc/ssl/openssl.cnf and put my modified version in place
 	5) Then I created a new certificate authority:
-			./ca.pl -newca
-				pem password was "password"
+			export SSLEAY_CONFIG="-config /etc/ssl/openssl.cnf";export OPENSSL="/usr/bin/openssl"; ./ca.pl -newca
+				pem password was logged in password file
 				challenge password was blank
 			result:
-				Certificate Details:
-					Serial Number:
-			   			c6:0d:1c:26:e0:5b:54:0f
+			Certificate Details:
+				Serial Number: 18242003245052226246 (0xfd289d4d14dc6ac6)
 					Validity
-			   			Not Before: Nov 11 22:20:04 2014 GMT
-			   			Not After : Nov  8 22:20:04 2024 GMT
-					Subject:
-			      		countryName               = US
+						Not Before: Oct  8 23:00:58 2018 GMT
+						Not After : Oct  5 23:00:58 2028 GMT
+			        Subject:
+						countryName               = US
 						stateOrProvinceName       = CA
-					    organizationName          = LUCI
-			      		commonName                = ca.luci.ics.uci.edu
+						organizationName          = X.509
+						organizationalUnitName    = CA ROOT
+						commonName                = witnessthismedia.org
+						emailAddress              = djp3@witnessthismedia.org
+						localityName              = Santa Barbara
 					X509v3 extensions:
-			      		X509v3 Subject Key Identifier: 
-					   		03:D6:A4:B2:00:75:1B:59:E5:D6:B5:87:56:C6:C1:5F:19:33:30:9C
+						X509v3 Subject Key Identifier: 
+							58:8D:BE:37:9D:8D:A5:10:A0:79:37:3A:F6:0C:F8:E2:AA:D0:A1:AF
 						X509v3 Authority Key Identifier: 
-							keyid:03:D6:A4:B2:00:75:1B:59:E5:D6:B5:87:56:C6:C1:5F:19:33:30:9C
-		
-						X509v3 Basic Constraints: 
-							CA:TRUE
-				Certificate is to be certified until Nov  8 22:20:04 2024 GMT (3650 days)
+							keyid:58:8D:BE:37:9D:8D:A5:10:A0:79:37:3A:F6:0C:F8:E2:AA:D0:A1:AF
+
+					X509v3 Basic Constraints: 
+						CA:TRUE
+			Certificate is to be certified until Oct  5 23:00:58 2028 GMT (3650 days)
 
 	6) Then back on my Mac I created a new server keystore:
 			keytool -keysize 4096 -genkey -alias server -keystore ./mySrvKeystore -keyalg RSA -validity 3650
 	7) The I created a certificate signing request:
 			keytool -keystore ./mySrvKeystore -certreq -alias server -keyalg rsa -file server.csr
-	8) Then I moved the request to the linux box and signed it
-			openssl ca -policy policy_anything -in server.csr -out server.cer
+	8) Then I moved the request (server.csr) to the linux box and signed it
+			openssl ca -config /etc/ssl/openssl.cnf -policy policy_anything -in server.csr -out ca/server.cer
 			result:
-				Certificate Details:
-        			Serial Number:
-			            c6:0d:1c:26:e0:5b:54:11
-			        Validity
-			            Not Before: Nov 11 22:45:41 2014 GMT
-			            Not After : Nov  8 22:45:41 2024 GMT
-			        Subject:
-			            countryName               = US
-			            stateOrProvinceName       = CA
-			            localityName              = Irvine
-			            organizationName          = LUCI
-			            organizationalUnitName    = LUCI
-			            commonName                = luci.ics.uci.edu
-			        X509v3 extensions:
-			            X509v3 Basic Constraints: 
-			                CA:FALSE
-			            Netscape Comment: 
-			                OpenSSL Generated Certificate
-			            X509v3 Subject Key Identifier: 
-			                DC:D8:71:5B:07:37:FF:E0:B4:13:E5:02:9B:23:B2:B9:06:B1:AC:27
-			            X509v3 Authority Key Identifier: 
-			                keyid:03:D6:A4:B2:00:75:1B:59:E5:D6:B5:87:56:C6:C1:5F:19:33:30:9C
-
-				Certificate is to be certified until Nov  8 22:45:41 2024 GMT (3650 days)
+			Certificate Details:
+				Serial Number:
+					fd:28:9d:4d:14:dc:6a:c7
+				Validity
+					Not Before: Oct  8 23:08:56 2018 GMT
+					Not After : Sep  1 23:08:56 2021 GMT
+				Subject:
+					countryName               = US
+					stateOrProvinceName       = CA
+					localityName              = Santa Barbara
+					organizationName          = X.509
+					organizationalUnitName    = Keystore
+					commonName                = Donald Patterson
+				X509v3 extensions:
+					X509v3 Basic Constraints: 
+						CA:FALSE
+					Netscape Comment: 
+						OpenSSL Generated Certificate
+					X509v3 Subject Key Identifier: 
+						12:DC:49:E1:2D:2C:2A:22:3B:AA:87:66:62:4E:26:2C:63:0B:B0:9A
+					X509v3 Authority Key Identifier: 
+						keyid:58:8D:BE:37:9D:8D:A5:10:A0:79:37:3A:F6:0C:F8:E2:AA:D0:A1:AF
+			Certificate is to be certified until Sep  1 23:08:56 2021 GMT (1059 days)
 
 	9) Then I moved the self-signed ca certificate back to my Mac
 			ca/cacert.pem -> ca.cer
@@ -78,7 +81,7 @@ I followed http://www.zytrax.com/tech/survival/ssl.html#root-ca "Method 3" to cr
 			keytool -import -keystore ./mySrvKeystore -file server.cer -alias server
 	12) Then I created a truststore for the client:
 			keytool -import -file ./ca.cer -alias client -keystore ./myClientTrustStore
-				password was "password"
+				password was stored in my password file
 	13) Then I restored the /etc/ssl/openssl.cnf on my linux box
 	14) The truststore and keystore were then usable by the Java code to execute a https connection
 	

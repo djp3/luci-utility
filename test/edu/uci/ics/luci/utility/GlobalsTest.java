@@ -46,11 +46,15 @@ public class GlobalsTest extends Globals {
 	private static String version;
 	private static String log4jFileName;
 	
-	@BeforeAll
-	public static void setUpBeforeClass() throws Exception {
+	public static void reset(String _log4jFileName) {
 		random = new Random();
 		version = Integer.toString(random.nextInt());
-		log4jFileName = "testSupport/GlobalsTest.log4j.xml";
+		log4jFileName = _log4jFileName;
+	}
+	
+	@BeforeAll
+	public static void setUpBeforeClass() throws Exception {
+		reset("testSupport/GlobalsTest.log4j.xml");
 	}
 
 	@AfterAll
@@ -74,12 +78,31 @@ public class GlobalsTest extends Globals {
 		Globals.setGlobals(null);
 	}
 	
+	/**
+	 * This method provides access to the global singleton if it is of type GlobalsTest
+	 * @return the current GlobalsTest singleton object or null if it has not been set or is not a GlobalsTest implementation
+	 */
+	public static GlobalsTest getGlobalsTest(){
+		Globals singleton = Globals.getGlobals();
+		if(singleton == null) {
+			return null;
+		}
+		else {
+			if(singleton instanceof GlobalsTest) {
+				return (GlobalsTest)singleton;
+			}
+			else {
+				throw new IllegalStateException("The Globals object is not of type GlobalsTest, it is "+singleton.getClass());
+			}
+		}	
+	}
+	
 	
 	public GlobalsTest(){
 		super();
 		this.setTesting(true);
 	}
-
+	
 	@Override
 	public String getSystemVersion() {
 		return version;
@@ -89,6 +112,8 @@ public class GlobalsTest extends Globals {
 	public String getLog4JPropertyFileName() {
 		return log4jFileName;
 	}
+	
+	
 
 	@Test
 	void testLog() {
@@ -117,8 +142,10 @@ public class GlobalsTest extends Globals {
 	public void testSingleton() {
 		/* Until you set a Globals there is no singleton */
 		assertTrue(Globals.getGlobals() == null);
+		assertNull(getGlobalsTest());
 		Globals.setGlobals(this);
 		assertTrue(Globals.getGlobals() == this);
+		assertNotNull(getGlobalsTest());
 		
 	}
 	
