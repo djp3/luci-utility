@@ -44,6 +44,10 @@
 			<AppenderRef ref="Console" />
 			<AppenderRef ref="RollingRandomAccessFile" />
 		</AsyncLogger>
+		<AsyncLogger name="edu.uci.ics.luci.utility.webserver.event.api.APIEvent_TimeOut" level="FATAL" includeLocation="true" additivity="false">
+			<AppenderRef ref="Console" />
+			<AppenderRef ref="RollingRandomAccessFile" />
+		</AsyncLogger>
 		<AsyncLogger name="edu.uci.ics.luci.utility.webserver.event.api.APIEvent_Shutdown" level="FATAL" includeLocation="true" additivity="false">
 			<AppenderRef ref="Console" />
 			<AppenderRef ref="RollingRandomAccessFile" />
