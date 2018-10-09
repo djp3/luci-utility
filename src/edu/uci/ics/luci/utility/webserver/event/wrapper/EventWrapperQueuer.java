@@ -1,6 +1,6 @@
 /*
-	Copyright 2007-2015
-		University of California, Irvine (c/o Donald J. Patterson)
+	Copyright 2007-2018
+		Donald J. Patterson 
 */
 /*
 	This file is part of the Laboratory for Ubiquitous Computing java Utility package, i.e. "Utilities"
@@ -21,12 +21,6 @@
 
 
 package edu.uci.ics.luci.utility.webserver.event.wrapper;
-
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -52,8 +46,6 @@ public class EventWrapperQueuer implements Quittable {
 
 	private final RingBuffer<EventWrapper> ringBuffer;
 	private final Disruptor<EventWrapper> disruptor;
-	private final BufferedOutputStream logWriter;
-	
 	
 	/** Quittable interface */
 	
@@ -66,12 +58,6 @@ public class EventWrapperQueuer implements Quittable {
 		} else {
 			if (quitting) {
 				this.quitting = quitting;
-				if (logWriter != null) {
-					try {
-						logWriter.close();
-					} catch (IOException e) {
-					}
-				}
 				if (disruptor != null) {
 					disruptor.shutdown();
 				}
@@ -87,22 +73,12 @@ public class EventWrapperQueuer implements Quittable {
 	
 
 	/**
-	 * Constructor that doesn't log to a file
-	 * 
-	 * @param ringBuffer
-	 */
-	public EventWrapperQueuer(Disruptor<EventWrapper> disruptor, RingBuffer<EventWrapper> ringBuffer) {
-		this(disruptor, ringBuffer, null);
-	}
-	
-
-	/**
 	 * Constructor that logs to a file
 	 * 
 	 * @param ringBuffer
 	 * @param logFileName
 	 */
-	public EventWrapperQueuer(Disruptor<EventWrapper> disruptor, RingBuffer<EventWrapper> ringBuffer, File logFile) {
+	public EventWrapperQueuer(Disruptor<EventWrapper> disruptor, RingBuffer<EventWrapper> ringBuffer) {
 		
 		if (disruptor == null) {
 			getLog().fatal("disruptor can't be null");
@@ -116,23 +92,6 @@ public class EventWrapperQueuer implements Quittable {
 			throw new IllegalArgumentException("ringBuffer can't be null");
 		}
 		this.ringBuffer = ringBuffer;
-
-		
-		/* Try and set up a file logger */
-		BufferedOutputStream _logWriter = null;
-		try{
-			if(logFile != null){
-				_logWriter = new BufferedOutputStream(new FileOutputStream(logFile));
-			}
-			else{
-				_logWriter = null;
-			}
-		}catch (FileNotFoundException e) {
-			getLog().error(e);
-		}finally{
-			logWriter = _logWriter;
-		}
-
 	}
 
 	
@@ -146,17 +105,7 @@ public class EventWrapperQueuer implements Quittable {
 	public void onData(EventWrapper incoming) {
 		if (!isQuitting()) {
 			/* Write event to log */
-			if (logWriter != null) {
-				try {
-					logWriter.write(incoming.toString().getBytes());
-					logWriter.write("\n".getBytes());
-					logWriter.flush();
-				} catch (IOException exception) {
-					getLog().error(
-							"Error writing event to log file:"
-									+ incoming.getClass().getCanonicalName());
-				}
-			}
+			getLog().info("onData Event Log:"+incoming.toString());
 
 			/* Submit event for handling */
 			ringBuffer.publishEvent(TRANSLATOR, incoming);
