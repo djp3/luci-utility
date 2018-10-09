@@ -1,6 +1,6 @@
 /*
-	Copyright 2007-2015
-		University of California, Irvine (c/o Donald J. Patterson)
+	Copyright 2007-2018
+		Donald J. Patterson 
 */
 /*
 	This file is part of the Laboratory for Ubiquitous Computing java Utility package, i.e. "Utilities"
@@ -79,7 +79,7 @@ public class APIEvent_Error extends APIEvent_Version implements Cloneable{
 			
 		ret.put("error", "true");
 		JSONArray errors = (JSONArray) ret.get("errors");
-		errors.add("Intentional error in response to query:"+getRequest().getCommand());
+		errors.add("Intentional error ("+this.getClass().getSimpleName()+") in response to query:"+getRequest().getCommand());
 		ret.put("errors",errors);
 		
 		response.setStatus(APIEventResult.Status.OK);
