@@ -91,7 +91,6 @@ public class EventWrapperHandler implements com.lmax.disruptor.EventHandler<Even
 				
 			}catch (Exception e){
 				getLog().error(e);
-				e.printStackTrace();
 				throw e;
 			}
 		}
