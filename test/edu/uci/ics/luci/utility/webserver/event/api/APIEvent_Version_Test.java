@@ -1,57 +1,86 @@
+/*
+	Copyright 2007-2018
+		Donald J. Patterson 
+*/
+/*
+	This file is part of the Laboratory for Ubiquitous Computing java Utility package, i.e. "Utilities"
+
+    Utilities is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Utilities is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Utilities.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 package edu.uci.ics.luci.utility.webserver.event.api;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.security.InvalidParameterException;
-import java.util.HashMap;
-
-import net.minidev.json.JSONObject;
-import net.minidev.json.JSONValue;
 
 import org.apache.http.client.utils.URIBuilder;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import edu.uci.ics.luci.utility.Globals;
-import edu.uci.ics.luci.utility.GlobalsTest;
+import edu.uci.ics.luci.utility.GlobalsForTesting;
 import edu.uci.ics.luci.utility.webserver.WebServer;
 import edu.uci.ics.luci.utility.webserver.WebUtil;
 import edu.uci.ics.luci.utility.webserver.event.EventVoid;
 import edu.uci.ics.luci.utility.webserver.input.request.Request;
 import edu.uci.ics.luci.utility.webserver.output.channel.socket.Output_Socket_HTTP;
+import net.minidev.json.JSONObject;
+import net.minidev.json.JSONValue;
 
 public class APIEvent_Version_Test {
 
-	@BeforeClass
-	public static void setUpBeforeClass() throws Exception {
-		Globals.setGlobals(new GlobalsTest());
+	@BeforeAll
+	static void setUpBeforeClass() throws Exception {
+		GlobalsForTesting.reset("testSupport/APIEvent_Version_Test.log4j.xml");
 	}
 
-	@AfterClass
-	public static void tearDownAfterClass() throws Exception {
+	@AfterAll
+	static void tearDownAfterClass() throws Exception {
+	}
+	
+
+	@BeforeEach
+	void setUp() throws Exception {
+		while(Globals.getGlobals() != null){
+			try{
+				Thread.sleep(1000);
+			}
+			catch(InterruptedException e){
+			}
+		}
+		/* First set up the globals in this convoluted way */
+		GlobalsForTesting g = new GlobalsForTesting();
+		Globals.setGlobals(g);
+	
+	}
+
+	@AfterEach
+	void tearDown() throws Exception {
 		Globals.getGlobals().setQuitting(true);
 		Globals.setGlobals(null);
 	}
-
-	@Before
-	public void setUp() throws Exception {
-	}
-
-	@After
-	public void tearDown() throws Exception {
-	}
 	
 	private WebServer ws = null;
-
-	HashMap<String,APIEvent> requestHandlerRegistry;
 
 	@Test
 	public void test() {
@@ -146,7 +175,7 @@ public class APIEvent_Version_Test {
 			e.printStackTrace();
 			fail("URISyntaxException");
 		}
-		System.out.println(responseString);
+		//System.out.println(responseString);
 
 		JSONObject response = null;
 		try {
@@ -157,7 +186,6 @@ public class APIEvent_Version_Test {
 			fail("Bad JSON Response");
 		}
 		
-		//Globals.getGlobals().setQuitting(true);
 
 	}
 
