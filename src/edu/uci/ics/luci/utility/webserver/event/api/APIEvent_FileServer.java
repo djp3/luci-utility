@@ -1,6 +1,6 @@
 /*
-	Copyright 2007-2015
-		University of California, Irvine (c/o Donald J. Patterson)
+	Copyright 2007-2018
+		Donald J. Patterson 
 */
 /*
 	This file is part of the Laboratory for Ubiquitous Computing java Utility package, i.e. "Utilities"
@@ -24,6 +24,7 @@ package edu.uci.ics.luci.utility.webserver.event.api;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.InvalidParameterException;
+import java.util.Scanner;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
@@ -103,7 +104,17 @@ public class APIEvent_FileServer extends APIEvent implements Cloneable{
 	 */
 	protected static String convertStreamToString(java.io.InputStream is) {
 	    try {
-	        return new java.util.Scanner(is).useDelimiter("\\A").next();
+	        Scanner s = null;
+	        try{
+	        	s = new java.util.Scanner(is,"UTF-8");
+	        	return s.useDelimiter("\\A").next();
+	        }
+	        finally {
+	        	if(s != null) {
+	        		s.close();
+	        		s = null;
+	        	}
+	        }
 	    } catch (java.util.NoSuchElementException e) {
 	        return "";
 	    }
