@@ -38,8 +38,8 @@ import org.apache.logging.log4j.Logger;
 import edu.uci.ics.luci.utility.Globals;
 
 public class AccessControl {
-	protected final String defaultFilenameTest1 = "test/access_control_list_for_testing.properties";
-	protected final String defaultFilenameTest2 = "test/access_control_list.properties";
+	protected final String defaultFilenameTest1 = "testSupport/access_control_list_for_testing.properties";
+	protected final String defaultFilenameTest2 = "testSupport/access_control_list.properties";
 	protected final String defaultFilenameLive = "access_control_list.properties";
 	
 	
