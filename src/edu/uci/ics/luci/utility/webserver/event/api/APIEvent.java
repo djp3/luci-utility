@@ -1,6 +1,6 @@
 /*
-	Copyright 2007-2015
-		University of California, Irvine (c/o Donald J. Patterson)
+	Copyright 2007-2018
+		Donald J. Patterson 
 */
 /*
 	This file is part of the Laboratory for Ubiquitous Computing java Utility package, i.e. "Utilities"
@@ -38,6 +38,12 @@ import edu.uci.ics.luci.utility.webserver.output.channel.Output;
 
 
 
+/**
+ * This class serves as a foundation class for other APIEvents to build on.
+ * It handles wrapping a callback function and it adds the error terms to the response in a uniform way
+ * @author djp3
+ *
+ */
 public class APIEvent extends Event implements Cloneable{
 	
 	private static transient volatile Logger log = null;
