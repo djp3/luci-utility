@@ -1,6 +1,6 @@
 /*
-	Copyright 2007-2015
-		University of California, Irvine (c/o Donald J. Patterson)
+	Copyright 2007-2018
+		Donald J. Patterson 
 */
 /*
 	This file is part of the Laboratory for Ubiquitous Computing java Utility package, i.e. "Utilities"
@@ -93,7 +93,7 @@ public class ListComparable<T extends Comparable<? super T>> implements List<T>,
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((list == null) ? 0 : list.hashCode());
+		result = prime * result + list.hashCode();
 		return result;
 	}
 
@@ -117,16 +117,7 @@ public class ListComparable<T extends Comparable<? super T>> implements List<T>,
 			return false;
 		}
 		
-		if (list == null) {
-			if (other.list != null) {
-				return false;
-			}
-			else{
-				return true;
-			}
-		} else{
-			return(this.compareTo(other) == 0);
-		}
+		return(this.compareTo(other) == 0);
 	}
 	
 
