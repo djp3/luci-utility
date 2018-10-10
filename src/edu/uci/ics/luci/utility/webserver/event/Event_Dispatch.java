@@ -26,7 +26,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.apache.commons.collections4.map.LRUMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -69,10 +73,11 @@ public class Event_Dispatch extends Event{
 	
 	private EventWrapperQueuer eventPublisher = null;
 	private Map<String, APIEvent> aPIRegistry = null;
+	private Map<String, String> aPIRegistryDerived = null; //Implemented as an LRU cache
 	private Request request = null;
 	private Output output = null;
     
-	public void setEventPublisher(EventWrapperQueuer newEventPublisher){
+	private void setEventPublisher(EventWrapperQueuer newEventPublisher){
 		if(newEventPublisher == null){
 			throw new IllegalArgumentException("Event Publisher can't be null");
 		}
@@ -92,6 +97,7 @@ public class Event_Dispatch extends Event{
 		
 		if(aPIRegistry == null){
 			aPIRegistry = Collections.synchronizedMap(new HashMap<String,APIEvent>(newRegistry));
+			aPIRegistryDerived = Collections.synchronizedMap(new LRUMap<String,String>(1024));
 		}
 		else{
 			throw new IllegalStateException("APIRegistry is already initialized");
@@ -102,7 +108,9 @@ public class Event_Dispatch extends Event{
 		return aPIRegistry;
 	}
 	
-	
+	private Map<String, String> getAPIRegistryDerived(){
+		return aPIRegistryDerived;
+	}
 	
 
 	public Request getRequest() {
@@ -112,6 +120,7 @@ public class Event_Dispatch extends Event{
 	protected void setRequest(Request request) {
 		this.request = request;
 	}
+	
 
 	public Output getOutput() {
 		return output;
@@ -191,37 +200,64 @@ public class Event_Dispatch extends Event{
 		}
 	}
 	
-	/** From : http://stackoverflow.com/a/5445161
-	 * 
-	 * @param is
-	 * @return
+	
+	
+	
+	
+	/* Make a pattern that matches chunks that end in a / */
+	Pattern slashPattern = Pattern.compile("[^/]*/");
+	/**
+	 * Based on the API Registry in in this class, return the command portion of the restFunction.
+	 * This is the string that best matches an entry in the API Registry.
+	 * The lookup is LRU cached so subsequent repeats are faster
+	 * @param restFunction
+	 * @return the command that can be looked up in the API Registry to handle the request
 	 */
-	protected static String convertStreamToString(java.io.InputStream is) {
-	    try {
-	        return new java.util.Scanner(is).useDelimiter("\\A").next();
-	    } catch (java.util.NoSuchElementException e) {
-	        return "";
-	    }
+	public String identifyCommand(String restFunction){
+		
+		/* See if there is an event handler that matches the called function exactly */
+		/* and handling null as well */
+		if(getAPIRegistry().containsKey(restFunction)){
+			return restFunction;
+		}
+		/* See if we've already solved a derived function and previously stored it in the cache */
+		String derivedCommand = getAPIRegistryDerived().get(restFunction);
+		if(derivedCommand != null) {
+			return derivedCommand;
+		}
+		
+		/* If the full restFunction doesn't map, then break down the command around slashes '/' and search for the parent commands */
+		Stack<Integer> s = new Stack<Integer>();
+		Matcher m = slashPattern.matcher(restFunction);
+		while(m.find()) {
+			s.push(m.end());
+		}
+		
+		while(!s.isEmpty()) {
+			Integer i = s.pop();
+			String sub = null;
+			if(i == 1) {
+				sub = "/";
+			}
+			else {
+				sub = restFunction.substring(0, i-1);
+			}
+			if(getAPIRegistry().containsKey(sub)) {
+				/* Store the answer in the cache */
+				getAPIRegistryDerived().put(restFunction, sub);
+				return sub;
+			}
+		}
+		return null;
 	}
 	
-	
 	public APIEvent getEvent(String restFunction){
-		
-		/* Get the template that the restFunction maps to */
-		APIEvent event = getAPIRegistry().get(restFunction);
-		
-		/* If the class isn't present then grab the default template */
-		if(event == null){
-			event = getAPIRegistry().get(null);
-		}
-		
-		/* If we don't have a class there is nothing to instantiate :( */
-		if(event == null){
-			return null;
-		}
+		/* See if there is an event handler that matches the called function exactly */
+		APIEvent event = getAPIRegistry().get(identifyCommand(restFunction));
 		
 		return ((APIEvent) (event.clone()));
 	}
+	
 	
 	
 	@Override
@@ -230,8 +266,11 @@ public class Event_Dispatch extends Event{
 		if((getRequest() != null) && (getOutput() != null)){  //Poison Pill would have this for example
 			incrementDispatchCounter();
 				
-			getLog().info(dispatchCounter+": request.getCommand():"+getRequest().getCommand());
+			/* Find the command that we can handle from the command line */
+			getRequest().setCommand(identifyCommand(getRequest().getCommandLine()));
+			getLog().info(dispatchCounter+": request \""+getRequest().getCommand()+"\"<-(\""+getRequest().getCommandLine()+"\")");
 				
+			/* Get the handler */
 			APIEvent apiEvent = getEvent(getRequest().getCommand());
 			apiEvent.setRequest(getRequest());
 			apiEvent.setOutput(getOutput());

@@ -7,27 +7,33 @@ import java.util.Set;
 
 import edu.uci.ics.luci.utility.webserver.Channel;
 import edu.uci.ics.luci.utility.webserver.Channel.Protocol;
+import net.minidev.json.JSONArray;
+import net.minidev.json.JSONObject;
+import net.minidev.json.JSONStyle;
 
-//TODO: fix this comment
-	/**
-	 * This function should be overridden to actually do something in response to a REST call.  It should call oneMoreJobHandled, so
-	 * that getJobCounter is meaningful.
-	 * @param ip, The ip address from which the request came 
-	 * @param httpRequestType, The type of HTTP Request that was received, like: "GET" 
-	 * @param headers, the HTML headers in the request 
-	 * @param restFunction, the function that was in the URL that caused this code to be invoked, like: "index.html"
-	 * @param parameters, a map of key and value that was passed through the REST request
-	 * @return a pair where the first element is the content type and the second element are the output bytes to send back
-	 */
+/**
+ * This class represents a REST request, that can be delivered from an http or p2p source
+ * @author djp3
+ *
+ */
 public class Request {
 	
 	private String source;
 	private Channel.Protocol protocol = null;
+	/* If the full url that was called was http://www.somedomain.com/alpha/beta
+	 * and the "command" that was matched was "/alpha"
+	 * then command will be set to "/alpha"
+	 * and commandLine will be set to "/alpha/beta"
+	 * With the same url the command that is matched could also be "/alpha/beta"
+	 * in which case command will be "/alpha/beta"
+	 * and commandLine will be "/alpha/beta"
+	 */
 	private String command;
+	private String commandLine;
 	private Map<String, List<String>> headers;
 	private Map<String, Set<String>> parameters;
 
-	/** Returns the protocol and address of the requestor **/
+	/** Returns the protocol and address of the requester **/
 	public String getSource() {
 		return source;
 	}
@@ -42,6 +48,14 @@ public class Request {
 
 	public void setCommand(String command) {
 		this.command = command;
+	}
+	
+	public String getCommandLine() {
+		return commandLine;
+	}
+
+	public void setCommandLine(String commandLine) {
+		this.commandLine = commandLine;
 	}
 	
 	public Map<String, Set<String>> getParameters(){
@@ -70,66 +84,34 @@ public class Request {
 	
 	@Override
 	public String toString(){
-		StringBuffer sb = new StringBuffer();
+		JSONObject ret = new JSONObject();
+		JSONObject ret_ret = new JSONObject();
+		ret_ret.put("source", source);
+		ret_ret.put("command", command);
+		ret_ret.put("command_line", commandLine);
+		ret_ret.put("protocol", protocol.toString());
 		
-		sb.append("{\"request\":\n");
-		sb.append("\t{\"source\":\""+source+"\",\n");
-		sb.append("\t \"command\":\""+command+"\",\n");
-		sb.append("\t \"protocol\":\""+protocol.toString()+"\",\n");
-		sb.append("\t \"headers\":\n");
-		boolean first = true;
+		JSONObject ret_headers = new JSONObject();
 		for(Entry<String, List<String>> e: headers.entrySet()){
-			if(first){
-				sb.append("\t\t{");
-				first = false;
-			}
-			else{
-				sb.append(",\n\t\t ");
-			}
-			sb.append("\""+e.getKey()+"\":\n");
-			boolean anotherfirst = true;
+			JSONArray values = new JSONArray();
 			for(String s: e.getValue()){
-				if(anotherfirst){
-					sb.append("\t\t\t[");
-					anotherfirst = false;
-				}
-				else{
-					sb.append(",\n\t\t\t ");
-				}
-				sb.append("\""+s+"\"");
+				values.add(s);
 			}
-			sb.append("\n\t\t\t]");
+			ret_headers.put(e.getKey(), values);
 		}
-		sb.append("\n\t\t},\n");
-		sb.append("\t \"parameters\":\n");
-		first = true;
+		ret_ret.put("headers", ret_headers);
+		
+		JSONObject ret_parameters = new JSONObject();
 		for(Entry<String, Set<String>> e: parameters.entrySet()){
-			if(first){
-				sb.append("\t\t{");
-				first = false;
-			}
-			else{
-				sb.append(",\n\t\t ");
-			}
-			sb.append("\""+e.getKey()+"\":\n");
-			boolean anotherfirst = true;
+			JSONArray values = new JSONArray();
 			for(String s: e.getValue()){
-				if(anotherfirst){
-					sb.append("\t\t\t[");
-					anotherfirst = false;
-				}
-				else{
-					sb.append(",\n\t\t\t ");
-				}
-				sb.append("\""+s+"\"");
+				values.add(s);
 			}
-			sb.append("\n\t\t\t]");
+			ret_parameters.put(e.getKey(), values);
 		}
-		sb.append("\n\t\t}");
-		sb.append("\n\t}");
-		sb.append("\n}");
-		return(sb.toString());
+		ret_ret.put("parameters", ret_parameters);
+		
+		ret.put("request",ret_ret);
+		return ret.toJSONString(JSONStyle.LT_COMPRESS);
 	}
-
-
 }

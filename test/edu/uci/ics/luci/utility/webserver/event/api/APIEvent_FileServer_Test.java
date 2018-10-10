@@ -52,6 +52,7 @@ public class APIEvent_FileServer_Test {
 	@BeforeAll
 	static void setUpBeforeClass() throws Exception {
 		GlobalsForTesting.reset("testSupport/APIEvent_Test.log4j.xml");
+		//GlobalsForTesting.reset("testSupport/Everything.log4j.xml");
 	}
 
 	@AfterAll
@@ -138,7 +139,7 @@ public class APIEvent_FileServer_Test {
 			assertTrue(b.hashCode() == a.hashCode());
 			
 			/*ResourcePrefix equals */
-			//edu.uci.ics.luci.utility.Globals.class,"/www_test/");
+			//edu.uci.ics.luci.utility.Globals.class,"/www_test","/content");
 			a.setResourcePrefix("/www_test");
 			assertTrue(!a.equals(b));
 			assertTrue(!b.equals(a));
@@ -173,8 +174,8 @@ public class APIEvent_FileServer_Test {
 			/*setting */
 			b.setRequest(new Request());
 			b.setOutput(new Output_Socket_HTTP(null));
-			b.setResourcePrefix("/www_foo");
 			b.setResourceBaseClass(edu.uci.ics.luci.utility.GlobalsTest.class);
+			b.setResourcePrefix("/www_foo");
 			assertTrue(!a.equals(b));
 			a.set(b);
 			assertTrue(a.equals(b));
@@ -200,8 +201,10 @@ public class APIEvent_FileServer_Test {
 		int port = APIEvent_FileServer_Test.testPortPlusPlus();
 		boolean secure = false;
 		ws = APIEvent_FileServer_Test.startAWebServerSocket(Globals.getGlobals(),port,secure);
-		ws.updateAPIRegistry(null, new APIEvent_FileServer(edu.uci.ics.luci.utility.Globals.class,"/www_test"));
+		ws.updateAPIRegistry("/", new APIEvent_FileServer(edu.uci.ics.luci.utility.GlobalsForTesting.class,"/www_test"));
+		ws.updateAPIRegistry("/content", new APIEvent_FileServer(edu.uci.ics.luci.utility.GlobalsForTesting.class,"/www_test"));
 
+		/* Using the first command */
 		String responseString = null;
 		try {
 			URIBuilder uriBuilder = new URIBuilder()
@@ -210,6 +213,8 @@ public class APIEvent_FileServer_Test {
 									.setPort(ws.getInputChannel().getPort())
 									.setPath("/index.html");
 			responseString = WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
+			//System.out.println(responseString);
+			assertTrue(responseString.contains("<h1>This is a test html file</h1>"));
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 			fail("Bad URL");
@@ -221,9 +226,28 @@ public class APIEvent_FileServer_Test {
 			e.printStackTrace();
 			fail("URISyntaxException");
 		}
-		//System.out.println(responseString);
 		
-		assertTrue(responseString.contains("<h1>This is a test html file</h1>"));
+		/* Using the second command */
+		try {
+			URIBuilder uriBuilder = new URIBuilder()
+									.setScheme("http")
+									.setHost("localhost")
+									.setPort(ws.getInputChannel().getPort())
+									.setPath("/content/index.html");
+			responseString = WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
+			//System.out.println(responseString);
+			assertTrue(responseString.contains("<h1>This is a test html file</h1>"));
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+			fail("Bad URL");
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail("IO Exception");
+		}
+		catch (URISyntaxException e) {
+			e.printStackTrace();
+			fail("URISyntaxException");
+		}
 	}
 
 }

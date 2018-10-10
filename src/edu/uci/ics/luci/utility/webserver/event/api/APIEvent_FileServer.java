@@ -44,13 +44,14 @@ public class APIEvent_FileServer extends APIEvent implements Cloneable{
 	}
 
 
-	private String resourcePrefix;
 	private Class<?> resourceBaseClass;
+	private String resourcePrefix;
 
 	/**
 	 * 
-	 * @param resourcePrefix, something like "/www/" for finding the relevant files in the package
 	 * @param resourceBaseClass, something like Globals.getGlobals().getClass(), which says which package to look in
+	 * @param resourcePrefix, something like "/www/" for finding the relevant files in the package
+	 * @param stripPrefix, a file path to remove from the beginning of the incoming request in case the web URL has a prefix that the file system does not
 	 */
 	public APIEvent_FileServer(Class<?> resourceBaseClass,String resourcePrefix){
 		super();
@@ -66,6 +67,7 @@ public class APIEvent_FileServer extends APIEvent implements Cloneable{
 	public void setResourcePrefix(String resourcePrefix) {
 		this.resourcePrefix = resourcePrefix;
 	}
+	
 
 	public Class<?> getResourceBaseClass() {
 		return resourceBaseClass;
@@ -82,8 +84,8 @@ public class APIEvent_FileServer extends APIEvent implements Cloneable{
 		if(_incoming instanceof APIEvent_FileServer){
 			incoming = (APIEvent_FileServer) _incoming;
 			super.set(incoming);
-			this.setResourcePrefix(incoming.getResourcePrefix());
 			this.setResourceBaseClass(incoming.getResourceBaseClass());
+			this.setResourcePrefix(incoming.getResourcePrefix());
 		}
 		else{
 			getLog().error(ERROR_SET_ENCOUNTERED_TYPE_MISMATCH+", incoming:"+_incoming.getClass().getName()+", this:"+this.getClass().getName());
@@ -132,7 +134,19 @@ public class APIEvent_FileServer extends APIEvent implements Cloneable{
 		
 		InputStream ios = null;
 		
-		String resource = resourcePrefix+getRequest().getCommand();
+		String cl = getRequest().getCommandLine();
+		String c = getRequest().getCommand();
+		String resource = null;
+		if(cl.startsWith(c)){
+			if( c.equals("/")) {
+				resource = resourcePrefix+"/"+cl.substring(c.length());
+			}
+			else {
+				resource = resourcePrefix+cl.substring(c.length());
+			}
+			getLog().debug("resource Prefix=\""+resourcePrefix+"\" command line = \""+cl+"\" command = \""+c+"\" result = \""+resource+"\"");
+		}
+		
 		ios = resourceBaseClass.getResourceAsStream(resource);
 		
 		try{
