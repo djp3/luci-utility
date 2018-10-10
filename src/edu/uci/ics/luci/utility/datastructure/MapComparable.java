@@ -1,6 +1,6 @@
 /*
-	Copyright 2007-2015
-		University of California, Irvine (c/o Donald J. Patterson)
+	Copyright 2007-2018
+		Donald J. Patterson 
 */
 /*
 	This file is part of the Laboratory for Ubiquitous Computing java Utility package, i.e. "Utilities"
@@ -113,7 +113,7 @@ public class MapComparable<K extends Comparable<? super K>,V extends Comparable<
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((map == null) ? 0 : map.hashCode());
+		result = prime * result + map.hashCode();
 		return result;
 	}
 
@@ -135,16 +135,8 @@ public class MapComparable<K extends Comparable<? super K>,V extends Comparable<
 		}else{
 			return false;
 		}
-		if (map == null) {
-			if (other.map != null) {
-				return false;
-			}
-			else{
-				return true;
-			}
-		} else{
-			return(this.compareTo(other) == 0);
-		}
+		
+		return(this.compareTo(other) == 0);
 	}
 	
 
