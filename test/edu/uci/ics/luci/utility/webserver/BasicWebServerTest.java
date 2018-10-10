@@ -20,6 +20,9 @@ import edu.uci.ics.luci.utility.Globals;
 import edu.uci.ics.luci.utility.GlobalsForTesting;
 import edu.uci.ics.luci.utility.GlobalsTest;
 import edu.uci.ics.luci.utility.webserver.event.api.APIEvent;
+import edu.uci.ics.luci.utility.webserver.event.api.APIEvent_Favicon;
+import edu.uci.ics.luci.utility.webserver.event.api.APIEvent_FileServer;
+import edu.uci.ics.luci.utility.webserver.event.api.APIEvent_Shutdown;
 import edu.uci.ics.luci.utility.webserver.event.api.APIEvent_Version;
 import edu.uci.ics.luci.utility.webserver.input.channel.socket.HTTPInputOverSocket;
 import net.minidev.json.JSONObject;
@@ -47,9 +50,6 @@ class BasicWebServerTest {
 	
 	private static WebServer startAWebServer(GlobalsTest globals,int port,boolean secure) {
 
-		/* Try and turn off log messages about the log messaging system */
-		System.setProperty("Log4jDefaultStatusLevel","error");
-			
 		WebServer ws = null;
 		HashMap<String, APIEvent> requestHandlerRegistry;
 
@@ -57,16 +57,20 @@ class BasicWebServerTest {
 			HTTPInputOverSocket inputChannel = new HTTPInputOverSocket(port,secure);
 
 			requestHandlerRegistry = new HashMap<String,APIEvent>();
-			//DatastoreInterface db = new DatastoreInterface(
-			//		globalsApp.getDatabaseHost(),
-			//		globalsApp.getDatabaseName(),
-			//		globalsApp.getDatabaseUserName(),
-			//		globalsApp.getDatabasePassword());
 			
-			// Null is a default Handler
-			requestHandlerRegistry.put(null, new APIEvent_Version(globals.getSystemVersion()));
-			requestHandlerRegistry.put("", new APIEvent_Version(globals.getSystemVersion()));
-			requestHandlerRegistry.put("/", new APIEvent_Version(globals.getSystemVersion()));
+			// Null returns a favicon
+			APIEvent_Favicon api = new APIEvent_Favicon(
+								new URIBuilder().setScheme("https")
+								.setHost("assets-cdn.github.com")
+								//.setPort(80)
+								.setPath("/favicon.ico"));
+			requestHandlerRegistry.put(null, api);
+			requestHandlerRegistry.put("", api);
+			requestHandlerRegistry.put("/", api);
+			requestHandlerRegistry.put("/version", new APIEvent_Version(globals.getSystemVersion()));
+			requestHandlerRegistry.put("/content",new APIEvent_FileServer(edu.uci.ics.luci.utility.GlobalsForTesting.class,"/www_test"));
+			requestHandlerRegistry.put("/shutdown", new APIEvent_Shutdown(Globals.getGlobals()));
+
 			//	requestHandlerRegistry.put("/version", new WAPIEvent_VersionCheck(VERSION));
 			/*requestHandlerRegistry.put("/session/initiate", new QAPIEvent_InitiateSession(VERSION,db));
 			requestHandlerRegistry.put("/session/check", new QAPIEvent_CheckSession(VERSION,db));
@@ -102,7 +106,7 @@ class BasicWebServerTest {
 	}
 	
 	@Test
-	void testVersionResponse() {
+	void testResponse() {
 		/* First set up the globals in this convoluted way */
 		GlobalsForTesting.reset("testSupport/BasicWebServerTest.log4j.xml");
 		GlobalsForTesting g = new GlobalsForTesting();
@@ -110,21 +114,43 @@ class BasicWebServerTest {
 		
 		JSONParser p = new JSONParser(JSONParser.MODE_JSON_SIMPLE);
 		
-		
 		/* Now kickoff the webserver */
 		WebServer ws = startAWebServer(g,1776,true);
 		if(ws == null) {
 			fail("Webserver should have started");
 		}
 		
-		/* Send a test to the webserver */
+		/* Test the favicon response */
 		String responseString = null;
 		try {
 			URIBuilder uriBuilder = new URIBuilder()
 									.setScheme("https")
 									.setHost("localhost")
 									.setPort(ws.getInputChannel().getPort())
-									.setPath("/");
+									.setPath("");
+			responseString = WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
+			assertEquals(6518,responseString.length()); //This is github's favicon size
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+			fail("Bad URL");
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail("IO Exception");
+		}
+		catch (URISyntaxException e) {
+			e.printStackTrace();
+			fail("URISyntaxException");
+		}
+		
+		
+		/* Test the version response*/
+		responseString = null;
+		try {
+			URIBuilder uriBuilder = new URIBuilder()
+									.setScheme("https")
+									.setHost("localhost")
+									.setPort(ws.getInputChannel().getPort())
+									.setPath("/version");
 			responseString = WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
 			JSONObject j = (JSONObject) p.parse(responseString);
 			assertEquals(Globals.getGlobals().getSystemVersion(),j.getAsString("version"));
@@ -144,9 +170,58 @@ class BasicWebServerTest {
 			e.printStackTrace();
 			fail("Webserver did not return valid JSON");
 		}
-		ws.setQuitting(true);
 		
 		
+		/* Test the file server response */
+		responseString = null;
+		try {
+			URIBuilder uriBuilder = new URIBuilder()
+									.setScheme("https")
+									.setHost("localhost")
+									.setPort(ws.getInputChannel().getPort())
+									.setPath("/content/index.html");
+			responseString = WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
+			//System.out.println(responseString);
+			assertTrue(responseString.contains("<h1>This is a test html file</h1>"));
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+			fail("Bad URL");
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail("IO Exception");
+		}
+		catch (URISyntaxException e) {
+			e.printStackTrace();
+			fail("URISyntaxException");
+		}
+		
+		/* Test the shutdown response */
+		responseString = null;
+		try {
+			URIBuilder uriBuilder = new URIBuilder()
+									.setScheme("https")
+									.setHost("localhost")
+									.setPort(ws.getInputChannel().getPort())
+									.setPath("/shutdown");
+			responseString = WebUtil.fetchWebPage(uriBuilder, null,null, null, 30 * 1000);
+			JSONObject j = (JSONObject) p.parse(responseString);
+			assertEquals("false",j.getAsString("error"));
+			assertEquals(p.parse("[]"),j.get("errors"));
+			assertTrue(Globals.getGlobals().isQuitting());
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+			fail("Bad URL");
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail("IO Exception");
+		}
+		catch (URISyntaxException e) {
+			e.printStackTrace();
+			fail("URISyntaxException");
+		} catch (ParseException e) {
+			e.printStackTrace();
+			fail("Parse Exception unexpected");
+		}
 	}
 
 
