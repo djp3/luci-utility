@@ -40,7 +40,7 @@ class Event_DispatchTest {
 	@AfterAll
 	static void tearDownAfterClass() throws Exception {
 	}
-
+	
 	@BeforeEach
 	void setUp() throws Exception {
 		while(Globals.getGlobals() != null){
@@ -118,6 +118,8 @@ class Event_DispatchTest {
 			/* Good constructor */
 			ed =	new Event_Dispatch(registry, localEventPublisher,new Request(),new Output_Socket_HTTP(null));
 		}
+		
+		assertEquals(6,ed.getAPIRegistry().size());
 		
 		assertNotNull(ed);
 		
