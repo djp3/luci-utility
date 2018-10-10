@@ -45,12 +45,22 @@ public class MyKeyManager implements X509KeyManager {
 
     public MyKeyManager(String keyStoreFile, char[] password, String alias) throws IOException, GeneralSecurityException
     {
+    	this(keyStoreFile,password,alias,null);
+    }
+    
+    public MyKeyManager(String keyStoreFile, char[] password, String alias, String type) throws IOException, GeneralSecurityException
+    {
     	InputStream stream = null;
     	try{
     		this.alias = alias;
     		this.password = password;
     		stream = new FileInputStream(keyStoreFile);
-    		keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+    		if(type == null) {
+    			keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+    		}
+    		else {
+    			keyStore = KeyStore.getInstance(type);
+    		}
     		keyStore.load(stream, password);
     	}
     	finally{
