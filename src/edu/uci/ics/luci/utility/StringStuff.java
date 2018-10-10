@@ -1,6 +1,6 @@
 /*
-	Copyright 2007-2015
-		University of California, Irvine (c/o Donald J. Patterson)
+	Copyright 2007-2018
+		Donald J. Patterson 
 */
 /*
 	This file is part of the Laboratory for Ubiquitous Computing java Utility package, i.e. "Utilities"
@@ -35,10 +35,6 @@ public class StringStuff {
 	}
 	
 	public static String repeatString(String s, int numberOfRepeats) {
-		Integer foo=null;
-		if(foo==null){
-			foo = 1;
-		}
 		StringBuffer repeatString = new StringBuffer();
 		for (int i=0; i<numberOfRepeats; ++i){
 			repeatString.append(s);
