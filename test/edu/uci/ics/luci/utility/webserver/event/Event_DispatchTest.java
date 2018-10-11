@@ -151,7 +151,7 @@ class Event_DispatchTest {
 		assertEquals("/bar",ed.identifyCommand("/bar//foo/"));
 		Long end2 = System.currentTimeMillis();
 		
-		assertTrue((end - start) > (end2-start2)); //Cache should speed things up
+		assertTrue((end - start) >= (end2-start2)); //Cache should speed things up
 		//System.out.println("Cached helped "+((end-start) - (end2-start2))+" milliseconds");
 		
 		/* Now check to make sure we are getting the right objects*/

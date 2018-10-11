@@ -82,13 +82,6 @@ public class APIEvent_Favicon_Test {
 	
 	WebServer ws = null;
 	
-	private static int testPort = 9020;
-	public static synchronized int testPortPlusPlus(){
-		int x = testPort;
-		testPort++;
-		return(x);
-	}
-
 	public static WebServer startAWebServerSocket(Globals globals,int port,boolean secure) {
 		WebServer ws = null;
 		try {
@@ -181,7 +174,8 @@ public class APIEvent_Favicon_Test {
 	@Test
 	public void testWebServerSocket() {
 		
-		int port = APIEvent_Favicon_Test.testPortPlusPlus();
+		int port = APIEvent_Test.testPortPlusPlus();
+
 		boolean secure = false;
 		ws = APIEvent_Favicon_Test.startAWebServerSocket(Globals.getGlobals(),port,secure);
 		ws.updateAPIRegistry(null, new APIEvent_Favicon(

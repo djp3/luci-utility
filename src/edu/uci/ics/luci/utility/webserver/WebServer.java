@@ -1,6 +1,6 @@
 /*
-	Copyright 2007-2015
-		University of California, Irvine (c/o Donald J. Patterson)
+	Copyright 2007-2018
+		Donald J. Patterson 
 */
 /*
 	This file is part of the Laboratory for Ubiquitous Computing java Utility package, i.e. "Utilities"
@@ -23,13 +23,14 @@ package edu.uci.ics.luci.utility.webserver;
 
 import static org.junit.Assert.fail;
 
-import java.io.File;
 import java.security.InvalidParameterException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -66,7 +67,7 @@ import edu.uci.ics.luci.utility.webserver.output.channel.Output;
  * networks, like a p2p network which is why it was refactored as it is.
  * 
  * After starting, the server has 3 threads, one which takes connections from the input channel and spawns
- * threads to consume the incoming job.  The incoming job is just formatted into an Request in this thread.
+ * threads to consume the incoming job.  The incoming job is just formatted into a Request in this thread.
  * 
  * The second thread is responsible for dispatching the jobs, once converted.  They are passed to a Request Dispatcher
  * which handles one or more jobs at a time.
@@ -104,7 +105,6 @@ public class WebServer implements Runnable,Quittable{
 	
 	private EventWrapperQueuer eventPublisher;
 	private Map<String, APIEvent> aPIRegistry;
-	private File logFile = null;
 	
 	
 	
@@ -158,6 +158,10 @@ public class WebServer implements Runnable,Quittable{
 	
 	public long getTotalRequests() {
 		return count;
+	}
+	
+	public void incrementTotalRequests() {
+		count++;
 	}
 	
 	
@@ -223,9 +227,9 @@ public class WebServer implements Runnable,Quittable{
 	 * 
 	 * @param inputChannel  Where are the REST commands coming from?
 	 * @param requestDispatcher What is going to handle them?
-	 * @param accessControl Are there any access restrictions
+	 * @param accessControl Are there any access restrictions?
 	 */
-	public WebServer(Input inputChannel, Map<String, APIEvent> requestHandlerRegistry,AccessControl accessControl,File logFile){
+	public WebServer(Input inputChannel, Map<String, APIEvent> requestHandlerRegistry,AccessControl accessControl){
 		
 		if(inputChannel == null){
 			throw new InvalidParameterException("The Input Channel can't be null");
@@ -249,8 +253,6 @@ public class WebServer implements Runnable,Quittable{
 			//this.accessControl.setDefaultFilename(null);
 		}
 		
-		this.logFile = logFile;
-		
 		setWebServerThread(new Thread(this));
 		getWebServerThread().setName("WebServer:"+((Globals.getGlobals().isTesting())?"testing":"not testing"));
 		getWebServerThread().setDaemon(false); /* Force a clean shutdown */
@@ -261,10 +263,10 @@ public class WebServer implements Runnable,Quittable{
 	
 	/**
 	 * Create Event Disruptor Queue
+	 * @param shouldLog set to true if log4j system should be used to output events
 	 * @return 
 	 */
-	@SuppressWarnings("unchecked")
-	public EventWrapperQueuer createEventQueue(File logFile) {
+	public EventWrapperQueuer createEventQueue() {
 	    // The factory for the event
 	    EventWrapperFactory factory = new EventWrapperFactory();
 	
@@ -272,7 +274,7 @@ public class WebServer implements Runnable,Quittable{
 	    int bufferSize = 1024;
 	
 	    // Construct the Disruptor
-	    Disruptor<EventWrapper> disruptor = new Disruptor<EventWrapper>(factory, bufferSize, getThreadExecutor());
+	    Disruptor<EventWrapper> disruptor = new Disruptor<EventWrapper>(factory, bufferSize, Executors.defaultThreadFactory());
 	
 	    // Connect the handler
 	    disruptor.handleEventsWith(new EventWrapperHandler(getThreadExecutor()));
@@ -283,7 +285,7 @@ public class WebServer implements Runnable,Quittable{
 	    // Get the ring buffer from the Disruptor to be used for publishing.
 	    RingBuffer<EventWrapper> ringBuffer = disruptor.getRingBuffer();
 	
-	    EventWrapperQueuer localEventPublisher = new EventWrapperQueuer(disruptor,ringBuffer,logFile);
+	    EventWrapperQueuer localEventPublisher = new EventWrapperQueuer(disruptor,ringBuffer);
 	    
 	    return(localEventPublisher);
 	}
@@ -371,6 +373,7 @@ public class WebServer implements Runnable,Quittable{
 					if(!webserver.isQuitting() && (incoming != null)){
 						Event_MiddleWare event = new Event_MiddleWare(webserver,webserver.getThreadExecutor().submit(incoming),webserver.getAccessControl());
 						EventWrapper eventWrapper = new EventWrapper(event);
+						webserver.incrementTotalRequests();
 						webserver.getEventPublisher().onData(eventWrapper);
 					}
 				}
@@ -385,11 +388,19 @@ public class WebServer implements Runnable,Quittable{
 	
 	public void run(){
 		
-		setEventPublisher(createEventQueue(logFile));
+		setEventPublisher(createEventQueue());
 		
 		try {
 			if (!isQuitting()) {
-				getThreadExecutor().submit(new MyIncomingGrabber(this));
+				/* This won't return until the server is completely quitting */
+				Future<Void> result = getThreadExecutor().submit(new MyIncomingGrabber(this));
+				try {
+					result.get();
+				} catch (InterruptedException e) {
+					getLog().error("The webserver was interrupted unexpectedly");
+				} catch (ExecutionException e) {
+					getLog().error("The webserver was interrupted unexpectedly");
+				}
 			}
 		} catch (RuntimeException e) {
 			getLog().fatal(e.toString());
@@ -416,6 +427,11 @@ public class WebServer implements Runnable,Quittable{
 		@Override
 		public String getSystemVersion() {
 			return "1.0";
+		}
+		
+		@Override
+		public String getLog4JPropertyFileName() {
+			return "luci-utility.log4j.xml";
 		}
 		
 	}
@@ -445,7 +461,7 @@ public class WebServer implements Runnable,Quittable{
 			AccessControl accessControl = new AccessControl();
 			accessControl.setDefaultFilename("test/access_control_list_for_testing.properties");
 			
-			ws = new WebServer(inputChannel, requestHandlerRegistry, accessControl,null);
+			ws = new WebServer(inputChannel, requestHandlerRegistry, accessControl);
 			
 			Globals.getGlobals().addQuittable(ws);
 			

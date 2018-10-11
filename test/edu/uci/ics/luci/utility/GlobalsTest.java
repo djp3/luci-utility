@@ -286,10 +286,10 @@ public class GlobalsTest extends Globals {
 	public void testCalendar(){
 		Globals.setGlobals(this);
 		Calendar calendar = Globals.getGlobals().getCalendar(TimeZone.getTimeZone("UTC"));
-		assertEquals(calendar.getTimeInMillis(),System.currentTimeMillis(),100.0);
+		assertEquals(calendar.getTimeInMillis(),System.currentTimeMillis(),500.0);
 		
 		calendar = Globals.getGlobals().getCalendar("UTC");
-		assertEquals(calendar.getTimeInMillis(),System.currentTimeMillis(),100.0);
+		assertEquals(calendar.getTimeInMillis(),System.currentTimeMillis(),500.0);
 	}
 
 }

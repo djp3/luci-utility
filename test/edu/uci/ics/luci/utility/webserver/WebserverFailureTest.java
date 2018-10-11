@@ -32,6 +32,8 @@ import java.util.HashMap;
 
 import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -41,7 +43,9 @@ import org.junit.jupiter.api.Test;
 import edu.uci.ics.luci.utility.Globals;
 import edu.uci.ics.luci.utility.GlobalsForTesting;
 import edu.uci.ics.luci.utility.webserver.event.api.APIEvent;
+import edu.uci.ics.luci.utility.webserver.event.api.APIEvent_Favicon;
 import edu.uci.ics.luci.utility.webserver.event.api.APIEvent_Shutdown;
+import edu.uci.ics.luci.utility.webserver.event.api.APIEvent_Test;
 import edu.uci.ics.luci.utility.webserver.event.api.APIEvent_UnstableWrapper;
 import edu.uci.ics.luci.utility.webserver.event.api.APIEvent_Version;
 import edu.uci.ics.luci.utility.webserver.input.channel.socket.HTTPInputOverSocket;
@@ -52,7 +56,7 @@ public class WebserverFailureTest {
 	
 	@BeforeAll
 	static void setUpBeforeClass() throws Exception {
-		GlobalsForTesting.reset("testSupport/JustFatals.log4j.xml");
+		GlobalsForTesting.reset("testSupport/WebserverFailureTest.log4j.xml");
 	}
 
 	@AfterAll
@@ -79,6 +83,17 @@ public class WebserverFailureTest {
 	
 	}
 	
+
+	private static transient volatile Logger log = null;
+	public static Logger getLog(){
+		if(log == null){
+			log = LogManager.getLogger(WebserverFailureTest.class);
+		}
+		return log;
+	}
+	
+
+	
 	
 	private static WebServer startAWebServer(Globals globals,int port,boolean secure) {
 
@@ -90,7 +105,15 @@ public class WebserverFailureTest {
 
 			requestHandlerRegistry = new HashMap<String,APIEvent>();
 			
-			requestHandlerRegistry.put("/version", new APIEvent_UnstableWrapper(1.0d,0, new APIEvent_Version(globals.getSystemVersion())));
+			requestHandlerRegistry.put(null, new APIEvent_Favicon(
+								new URIBuilder().setScheme("https")
+								.setHost("assets-cdn.github.com")
+								//.setPort(80)
+								.setPath("/favicon.ico")));
+			requestHandlerRegistry.put("/version", new APIEvent_Version(globals.getSystemVersion()));
+			requestHandlerRegistry.put("/fail", new APIEvent_UnstableWrapper(1.0d,0, new APIEvent_Version(globals.getSystemVersion())));
+			requestHandlerRegistry.put("/latent", new APIEvent_UnstableWrapper(0.0d,1000, new APIEvent_Version(globals.getSystemVersion())));
+			requestHandlerRegistry.put("/unstable", new APIEvent_UnstableWrapper(0.5d,1000, new APIEvent_Version(globals.getSystemVersion())));
 			requestHandlerRegistry.put("/shutdown", new APIEvent_Shutdown(Globals.getGlobals()));
 
 			AccessControl accessControl = new AccessControl();
@@ -117,7 +140,8 @@ public class WebserverFailureTest {
 
 		try {
 			/* Now kickoff the webserver */
-			WebServer ws = startAWebServer(Globals.getGlobals(), 1776, true);
+			int port = APIEvent_Test.testPortPlusPlus();
+			WebServer ws = startAWebServer(Globals.getGlobals(), port, true);
 			if (ws == null) {
 				fail("Webserver should have started");
 			} else {
@@ -127,7 +151,7 @@ public class WebserverFailureTest {
 												.setScheme("https")
 												.setHost("localhost")
 												.setPort(ws.getInputChannel().getPort())
-												.setPath("/version");
+												.setPath("/fail");
 					for (int i = 0; i < NUM_TESTS; i++) {
 						try {
 							WebUtil.fetchWebPage(uriBuilder, null, null, null, 1 * 1000);
@@ -158,13 +182,16 @@ public class WebserverFailureTest {
 
 	@Test
 	/* This test was to help profile the failure case to debug and make sure it was clean */
+	/* It is designed to work with the WebServerLoadGenerator */
 	//for i in {1..10}; do echo $i;wget -t 1 -O - "http://localhost:9020/" ;done; wget -O - "http://localhost:9020/shutdown"
 	public void testWebserverFailureExternalRequests() {
 		
-		boolean testingExternally = false;
+		boolean testingExternally = false;  //Set to true if you are going to run an external test against this webserver
 
 		/* Now kickoff the webserver */
-		WebServer ws = startAWebServer(Globals.getGlobals(),1777,true);
+		int port = APIEvent_Test.testPortPlusPlus();
+		WebServer ws = startAWebServer(Globals.getGlobals(), port, true);
+		Long start = System.currentTimeMillis();
 		if(ws == null) {
 			fail("Webserver should have started");
 		}
@@ -175,7 +202,7 @@ public class WebserverFailureTest {
 				Thread.sleep(1000);
 			} catch (InterruptedException e1) {
 			}
-		
+			
 			try {
 				URIBuilder uriBuilder = new URIBuilder()
 					.setScheme("https")
@@ -210,6 +237,13 @@ public class WebserverFailureTest {
 				e.printStackTrace();
 			}
 		}
+		Long end = System.currentTimeMillis();
+		
+		if(ws != null) {
+			getLog().info("We received a total of  "+ws.getTotalRequests()+" web hits");
+			getLog().info("Over "+(end-start)+" milliseconds");
+			getLog().info("Average "+(1.0*(end-start))/ws.getTotalRequests()+" milliseconds per hit");
+		}	
 
 	}
 	

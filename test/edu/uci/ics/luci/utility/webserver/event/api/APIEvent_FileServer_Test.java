@@ -82,12 +82,6 @@ public class APIEvent_FileServer_Test {
 	
 	WebServer ws = null;
 	
-	private static int testPort = 9020;
-	public static synchronized int testPortPlusPlus(){
-		int x = testPort;
-		testPort++;
-		return(x);
-	}
 
 	public static WebServer startAWebServerSocket(Globals globals,int port,boolean secure) {
 		WebServer ws = null;
@@ -198,7 +192,8 @@ public class APIEvent_FileServer_Test {
 	@Test
 	public void testWebServerSocket() {
 		
-		int port = APIEvent_FileServer_Test.testPortPlusPlus();
+		int port = APIEvent_Test.testPortPlusPlus();
+
 		boolean secure = false;
 		ws = APIEvent_FileServer_Test.startAWebServerSocket(Globals.getGlobals(),port,secure);
 		ws.updateAPIRegistry("/", new APIEvent_FileServer(edu.uci.ics.luci.utility.GlobalsForTesting.class,"/www_test"));

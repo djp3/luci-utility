@@ -79,7 +79,7 @@ public class APIEvent_Error extends APIEvent_Version implements Cloneable{
 			
 		ret.put("error", "true");
 		JSONArray errors = (JSONArray) ret.get("errors");
-		errors.add("Intentional error ("+this.getClass().getSimpleName()+") in response to query:"+getRequest().getCommand());
+		errors.add("Intentional error ("+this.getClass().getSimpleName()+") in response to query:"+getRequest().getCommandLine());
 		ret.put("errors",errors);
 		
 		response.setStatus(APIEventResult.Status.OK);

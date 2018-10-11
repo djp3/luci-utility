@@ -2,7 +2,7 @@ package edu.uci.ics.luci.utility.webserver;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -23,6 +23,7 @@ import edu.uci.ics.luci.utility.webserver.event.api.APIEvent;
 import edu.uci.ics.luci.utility.webserver.event.api.APIEvent_Favicon;
 import edu.uci.ics.luci.utility.webserver.event.api.APIEvent_FileServer;
 import edu.uci.ics.luci.utility.webserver.event.api.APIEvent_Shutdown;
+import edu.uci.ics.luci.utility.webserver.event.api.APIEvent_Test;
 import edu.uci.ics.luci.utility.webserver.event.api.APIEvent_Version;
 import edu.uci.ics.luci.utility.webserver.input.channel.socket.HTTPInputOverSocket;
 import net.minidev.json.JSONObject;
@@ -46,7 +47,7 @@ class BasicWebServerTest {
 	@AfterEach
 	void tearDown() throws Exception {
 	}
-
+	
 	
 	private static WebServer startAWebServer(GlobalsTest globals,int port,boolean secure) {
 
@@ -115,7 +116,9 @@ class BasicWebServerTest {
 		JSONParser p = new JSONParser(JSONParser.MODE_JSON_SIMPLE);
 		
 		/* Now kickoff the webserver */
-		WebServer ws = startAWebServer(g,1776,true);
+		int port = APIEvent_Test.testPortPlusPlus();
+
+		WebServer ws = startAWebServer(g,port,true);
 		if(ws == null) {
 			fail("Webserver should have started");
 		}

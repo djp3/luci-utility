@@ -133,7 +133,7 @@ public class CalendarCacheTest {
 		end = System.currentTimeMillis();
 		
 		//System.out.println("middle-start:"+(middle-start)+",end-middle:"+(end-middle));
-		assertTrue((middle-start)>(end-middle));
+		assertTrue((middle-start) >= (end-middle));
 	}
 
 

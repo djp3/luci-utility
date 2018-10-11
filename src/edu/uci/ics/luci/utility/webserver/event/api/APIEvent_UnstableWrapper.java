@@ -116,9 +116,11 @@ public class APIEvent_UnstableWrapper extends APIEvent implements Cloneable {
 	public APIEventResult onEvent() {
 		
 		/* Wait a random amount of time simulating latency */
-		try {
-			Thread.sleep(random.nextInt(wait));
-		} catch (InterruptedException e) {
+		if(wait > 0) {
+			try {
+				Thread.sleep(random.nextInt(wait));
+			} catch (InterruptedException e) {
+			}
 		}
 		
 		/* Possibly fail, simulating failing */

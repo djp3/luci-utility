@@ -137,29 +137,41 @@ public class APIEvent_FileServer extends APIEvent implements Cloneable{
 		String cl = getRequest().getCommandLine();
 		String c = getRequest().getCommand();
 		String resource = null;
-		if(cl.startsWith(c)){
-			if( c.equals("/")) {
-				resource = resourcePrefix+"/"+cl.substring(c.length());
+		if(cl == null) {
+			resource = resourcePrefix+"/";
+		}
+		else if (c == null) {
+			resource = resourcePrefix+cl;
+		}
+		else {
+			if(cl.startsWith(c)){
+				if( c.equals("/")) {
+					resource = resourcePrefix+"/"+cl.substring(c.length());
+				}
+				else {
+					resource = resourcePrefix+cl.substring(c.length());
+				}
 			}
 			else {
-				resource = resourcePrefix+cl.substring(c.length());
+				//Who knows what to do in this case...
+				resource = resourcePrefix+cl;
 			}
-			getLog().debug("resource Prefix=\""+resourcePrefix+"\" command line = \""+cl+"\" command = \""+c+"\" result = \""+resource+"\"");
 		}
+		getLog().debug("resource Prefix=\""+resourcePrefix+"\" command line = \""+cl+"\" command = \""+c+"\" result = \""+resource+"\"");
 		
 		ios = resourceBaseClass.getResourceAsStream(resource);
 		
 		try{
 			if(ios != null){
-				if(getRequest().getCommand().endsWith(".css")){
+				if(getRequest().getCommandLine().endsWith(".css")){
 					response.setDataType(APIEventResult.DataType.CSS);
 					body = convertStreamToString(ios);
 				}
-				else if(getRequest().getCommand().endsWith(".png")){
+				else if(getRequest().getCommandLine().endsWith(".png")){
 					response.setDataType(APIEventResult.DataType.PNG);
 					body = IOUtils.toString(ios);
 				}
-				else if(getRequest().getCommand().endsWith(".js")){
+				else if(getRequest().getCommandLine().endsWith(".js")){
 					response.setDataType(APIEventResult.DataType.JAVASCRIPT);
 					body = convertStreamToString(ios);
 				}else{
@@ -175,7 +187,7 @@ public class APIEvent_FileServer extends APIEvent implements Cloneable{
 			response.setResponseBody(body);
 			
 		} catch (IOException e) {
-			getLog().error("Problem serving up content:"+getRequest().getCommand()+"\n"+e);
+			getLog().error("Problem serving up content:"+getRequest().getCommandLine()+"\n"+e);
 		}finally{
 			try {
 				if(ios != null){
