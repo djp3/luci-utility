@@ -16,7 +16,6 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.concurrent.Callable;
 
-import javax.net.ServerSocketFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.X509KeyManager;
@@ -56,7 +55,8 @@ public class HTTPInputOverSocket extends Input{
 
 
 	public HTTPInputOverSocket(int port, boolean secure){
-		this.port = port;
+		this.setPort(port);
+		this.setSecure(secure);
 		this.secure = secure;
         
 		this.connFactory = DefaultBHttpServerConnectionFactory.INSTANCE;
@@ -65,6 +65,10 @@ public class HTTPInputOverSocket extends Input{
 	@Override
 	public int getPort(){
 		return this.port;
+	}
+	
+	public void setPort(int port) {
+		this.port = port;
 	}
 
 	@Override
@@ -79,47 +83,77 @@ public class HTTPInputOverSocket extends Input{
 	private ServerSocket localServerSocket = null;
 	private synchronized ServerSocket getServerSocket(){
 		if(localServerSocket == null){
-			return (localServerSocket = initializeServerSocket());
+			localServerSocket = initializeServerSocket();
 		}
-		else{
-			return this.localServerSocket;
-		}
+		return localServerSocket;
 	}
 	
-	private ServerSocket initializeServerSocket(){
+	private synchronized ServerSocket initializeServerSocket(){
 		ServerSocket serverSoc = null;
 		try{
 			if(getSecure()){
 				SSLContext sctx1 = null;
 				try{
-					/* See the README.txt in test/keystore for information on how to make the credentials*/
-					sctx1 = SSLContext.getInstance("SSLv3");
+					/* See the README.txt in testSupport/keystore for information on how to make the credentials*/
+					String keyStore = System.getProperty("javax.net.ssl.keyStore");
+					if(keyStore == null) {
+						getLog().fatal("javax.net.ssl.keyStore property is not set, see test/keystore for info");
+						throw new NullPointerException();
+					}
+					
+					String keyStorePassword = System.getProperty("javax.net.ssl.keyStorePassword");
+					if(keyStorePassword == null) {
+						getLog().fatal("javax.net.ssl.keyStorePassword property is not set, see test/keystore for info");
+						throw new NullPointerException();
+					}
+					
+					String alias = System.getProperty("edu.uci.ics.luci.webserver.Alias");
+					if(alias == null) {
+						getLog().fatal("javax.net.ssl.keyStorePassword property is not set, see test/keystore for info");
+						throw new NullPointerException();
+					}
+					
+					String type = System.getProperty("keystore.type");
+					//System.out.println("Type: "+type);
+					
+					//Make sure openssl is installed to have this context
+					sctx1 = SSLContext.getInstance("TLSv1.2");
 					sctx1.init(new X509KeyManager[] { 
 						new MyKeyManager(
-								System.getProperty("javax.net.ssl.keyStore"),
-								System.getProperty("javax.net.ssl.keyStorePassword").toCharArray(),
-								System.getProperty("edu.uci.ics.luci.webserver.Alias")
+								keyStore,
+								keyStorePassword.toCharArray(),
+								alias,
+								type
 								)
 						}
 					,null,null);
+				SSLServerSocketFactory ssocketFactory = (SSLServerSocketFactory) sctx1.getServerSocketFactory();
+					serverSoc = ssocketFactory.createServerSocket(port);
+					//ServerSocketFactory ssocketFactory = SSLServerSocketFactory.getDefault();
 				} catch (NoSuchAlgorithmException e) {
 					getLog().fatal("I'm not into this error:\n"+e);
+					/*
+					for (Provider p: Security.getProviders()) {
+						System.out.println(p.getName());
+					}
+					*/
 				} catch (KeyManagementException e) {
 					getLog().fatal("Problem managing keys:\n"+e);
 				} catch (GeneralSecurityException e) {
 					getLog().fatal("Security Exception:\n"+e);
 				}
-			
-				//SSLServerSocketFactory ssocketFactory = (SSLServerSocketFactory) sctx1.getServerSocketFactory();
-				ServerSocketFactory ssocketFactory = SSLServerSocketFactory.getDefault();
-				serverSoc = ssocketFactory.createServerSocket(port);
-				serverSoc.setSoTimeout(1000);
 			}
 			else{
 				serverSoc = new ServerSocket(port);
-				serverSoc.setSoTimeout(1000);
+			}
+			/* Set up socket to never time out when listening for incoming connections */
+			if(serverSoc != null) {
+				if(serverSoc.getSoTimeout() != 0) {
+					serverSoc.setSoTimeout(0);
+				}
 			}
 		} catch (IOException e) {
+			e.printStackTrace();
 			getLog().fatal(e.toString());
 		}
 		return serverSoc;
@@ -166,138 +200,130 @@ public class HTTPInputOverSocket extends Input{
 	    *						is invalid
 	    *
 	    */
-	
-	   public static Map<String, String> parseHeaderString(String s) {
-	
-		   if (s == null) {
-			   throw new IllegalArgumentException("s is null");
-		   }
-		
-		   Map<String,String> ht = new HashMap<String,String>();
-		   StringTokenizer st = new StringTokenizer(s, "\n");
-		
-		   while (st.hasMoreTokens()) {
-			   String pair = st.nextToken();
-			   int pos = pair.indexOf(':');
-			   String key;
-			   String value;
-			   if (pos == -1) {
-				   key = pair;
-				   value = null;
-			   }
-			   else{
-				   key = pair.substring(0, pos).trim();
-				   value =pair.substring(pos+1, pair.length()).trim();
-			   }
-			   if (ht.containsKey(key)) {
-				   getLog().warn("http request had repeated keys");
-			   }
-			   
-			   ht.put(key, value);
-		   }
-		   return ht;
-	   }
 
-		/*
-		 * Parse a name in the query string.
-		 */
-		static String parseName(String s, StringBuffer sb) {
-			
-			sb.setLength(0);
-			for (int i = 0; i < s.length(); i++) {
-				char c = s.charAt(i); 
-				switch (c) {
-					case '+':
-						sb.append(' ');
-						break;
-					case '%':
-						try {
-							sb.append((char) Integer.parseInt(s.substring(i+1, i+3),  16));
-							i += 2;
-						} catch (NumberFormatException e) {
-							// XXX
-							// need to be more specific about illegal arg
-							throw new IllegalArgumentException();
-						} catch (StringIndexOutOfBoundsException e) {
-							String rest  = s.substring(i);
-							sb.append(rest);
-							if (rest.length()==2)
-								i++;
-						}
-						break;
-					default:
-						sb.append(c);
-					break;
-				}
-			}
-			return sb.toString();
+	public static Map<String, String> parseHeaderString(String s) {
+
+		if (s == null) {
+			throw new IllegalArgumentException("s is null");
 		}
 
-		
-	   
-	   /**
-	    *
-	    * Parses a query string passed from the client to the
-	    * server and builds a <code>Map</code> object
-	    * with key-value pairs. 
-	    * The query string should be in the form of a string
-	    * packaged by the GET or POST method, that is, it
-	    * should have key-value pairs in the form <i>key=value</i>,
-	    * with each pair separated from the next by a &amp; character.
-	    *
-	    * <p>A key can appear more than once in the query string
-	    * with different values. However, the key appears only once in 
-	    * the map, with its value being rewritten in the case of multiple values sent
-	    * by the query string.
-	    * 
-	    * <p>The keys and values in the map are stored in their
-	    * decoded form, so
-	    * any + characters are converted to spaces, and characters
-	    * sent in hexadecimal notation (like <i>%xx</i>) are
-	    * converted to ASCII characters.
-	    *
-	    * @param s		a string containing the query to be parsed
-	    *
-	    * @return		a <code>Map</code> object built
-	    * 			from the parsed key-value pairs
-	    *
-	    * @exception IllegalArgumentException	if the query string 
-	    *						is invalid
-	    *
-	    */
-	
-	   public static Map<String, String> parseQueryString(String s) {
-	
-		   if (s == null) {
-			   throw new IllegalArgumentException("s is null");
-		   }
-		
-		   Map<String,String> ht = new HashMap<String,String>();
-		   StringBuffer sb = new StringBuffer();
-		   StringTokenizer st = new StringTokenizer(s, "&");
-		
-		   while (st.hasMoreTokens()) {
-			   String pair = st.nextToken();
-			   int pos = pair.indexOf('=');
-			   String key;
-			   String value;
-			   if (pos == -1) {
-				   key = pair;
-				   value = null;
-			   }
-			   else{
-				   key = parseName(pair.substring(0, pos), sb);
-				   value = parseName(pair.substring(pos+1, pair.length()), sb);
-			   }
-			   if (ht.containsKey(key)) {
-				   getLog().warn("http request had repeated keys");
-			   }
-			   
-			   ht.put(key, value);
-		   }
-		   return ht;
-	   }
-	   
+		Map<String, String> ht = new HashMap<String, String>();
+		StringTokenizer st = new StringTokenizer(s, "\n");
+
+		while (st.hasMoreTokens()) {
+			String pair = st.nextToken();
+			int pos = pair.indexOf(':');
+			String key;
+			String value;
+			if (pos == -1) {
+				key = pair;
+				value = null;
+			} else {
+				key = pair.substring(0, pos).trim();
+				value = pair.substring(pos + 1, pair.length()).trim();
+			}
+			if (ht.containsKey(key)) {
+				getLog().warn("http request had repeated keys");
+			}
+
+			ht.put(key, value);
+		}
+		return ht;
+	}
+
+	/*
+	 * Parse a name in the query string.
+	 */
+	static String parseName(String s, StringBuffer sb) {
+
+		sb.setLength(0);
+		for (int i = 0; i < s.length(); i++) {
+			char c = s.charAt(i);
+			switch (c) {
+			case '+':
+				sb.append(' ');
+				break;
+			case '%':
+				try {
+					sb.append((char) Integer.parseInt(s.substring(i + 1, i + 3), 16));
+					i += 2;
+				} catch (NumberFormatException e) {
+					// XXX
+					// need to be more specific about illegal arg
+					throw new IllegalArgumentException();
+				} catch (StringIndexOutOfBoundsException e) {
+					String rest = s.substring(i);
+					sb.append(rest);
+					if (rest.length() == 2)
+						i++;
+				}
+				break;
+			default:
+				sb.append(c);
+				break;
+			}
+		}
+		return sb.toString();
+	}
+
+	/**
+	 *
+	 * Parses a query string passed from the client to the server and builds a
+	 * <code>Map</code> object with key-value pairs. The query string should be in
+	 * the form of a string packaged by the GET or POST method, that is, it should
+	 * have key-value pairs in the form <i>key=value</i>, with each pair separated
+	 * from the next by a &amp; character.
+	 *
+	 * <p>
+	 * A key can appear more than once in the query string with different values.
+	 * However, the key appears only once in the map, with its value being rewritten
+	 * in the case of multiple values sent by the query string.
+	 * 
+	 * <p>
+	 * The keys and values in the map are stored in their decoded form, so any +
+	 * characters are converted to spaces, and characters sent in hexadecimal
+	 * notation (like <i>%xx</i>) are converted to ASCII characters.
+	 *
+	 * @param s
+	 *            a string containing the query to be parsed
+	 *
+	 * @return a <code>Map</code> object built from the parsed key-value pairs
+	 *
+	 * @exception IllegalArgumentException
+	 *                if the query string is invalid
+	 *
+	 */
+
+	public static Map<String, String> parseQueryString(String s) {
+
+		if (s == null) {
+			throw new IllegalArgumentException("s is null");
+		}
+
+		Map<String, String> ht = new HashMap<String, String>();
+		StringBuffer sb = new StringBuffer();
+		StringTokenizer st = new StringTokenizer(s, "&");
+
+		while (st.hasMoreTokens()) {
+			String pair = st.nextToken();
+			int pos = pair.indexOf('=');
+			String key;
+			String value;
+			if (pos == -1) {
+				key = pair;
+				value = null;
+			} else {
+				key = parseName(pair.substring(0, pos), sb);
+				value = parseName(pair.substring(pos + 1, pair.length()), sb);
+			}
+			if (ht.containsKey(key)) {
+				getLog().warn("http request had repeated keys");
+			}
+
+			ht.put(key, value);
+		}
+		return ht;
+	}
 
 
 	@Override
@@ -309,11 +335,9 @@ public class HTTPInputOverSocket extends Input{
 			
 			return new MyHandler(localSocket.getInetAddress().toString(),conn);
 		} catch(SocketTimeoutException e){
-			/* This is a common exception */
 			getLog().trace("Socket timed out\n"+e);
 			return null;
 		} catch (IOException e) {
-			getLog().debug("Socket timed out\n"+e);
 			getLog().error("Problem getting incoming socket connection\n"+e);
 			return null;
 		}
@@ -321,7 +345,7 @@ public class HTTPInputOverSocket extends Input{
 	
 
 	
-	private class MyHandler implements Callable<Pair<Request,Output>>{
+	private static class MyHandler implements Callable<Pair<Request,Output>>{
 		
 		private String source;
 		private HttpServerConnection conn;
@@ -376,9 +400,9 @@ public class HTTPInputOverSocket extends Input{
 				request.setProtocol(Protocol.UNKNOWN);
 			}
 			
-			/* Set the REST command */
+			/* Set the REST command line */
             URIBuilder uri = new URIBuilder(httpRequest.getRequestLine().getUri());
-            request.setCommand(uri.getPath());
+            request.setCommandLine(uri.getPath());
             
             Map<String, Set<String>> parameters = new HashMap<String,Set<String>>();
             for (NameValuePair nvp : uri.getQueryParams()) {
@@ -429,7 +453,7 @@ public class HTTPInputOverSocket extends Input{
 
 
 	@Override
-	public void closeChannel() {
+	public synchronized void closeChannel() {
 		if(localServerSocket != null){
 			try {
 				localServerSocket.close();

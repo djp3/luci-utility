@@ -1,6 +1,6 @@
 /*
-	Copyright 2007-2015
-		University of California, Irvine (c/o Donald J. Patterson)
+	Copyright 2007-2018
+		Donald J. Patterson 
 */
 /*
 	This file is part of the Laboratory for Ubiquitous Computing java Utility package, i.e. "Utilities"
@@ -21,27 +21,25 @@
 
 package edu.uci.ics.luci.utility.webserver;
 
-import java.io.BufferedReader;
-import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.UnsupportedEncodingException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.security.KeyManagementException;
-import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import org.apache.http.HeaderElement;
 import org.apache.http.HttpEntity;
@@ -58,8 +56,6 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLContextBuilder;
-import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -75,7 +71,7 @@ import edu.uci.ics.luci.utility.datastructure.Pair;
 
 public class WebUtil {
 	
-	private static final String UTF8 = "UTF-8";
+//	private static final String UTF8 = "UTF-8";
 
 	private static transient volatile Logger log = null;
 	public static Logger getLog(){
@@ -91,45 +87,45 @@ public class WebUtil {
 	 * flushes if there is a flush() method.
 	 */
 	
-	public static void close(Closeable input) {
-		if (input == null)
-			return;
-		// Flush (annoying that this is not part of Closeable)
-		try {
-			Method m = input.getClass().getMethod("flush");
-			m.invoke(input);
-		} catch (NoSuchMethodException e) {
-			getLog().debug("No Such Method Exception: flush");
-		} catch (IllegalAccessException e) {
-			getLog().error("",e);
-		} catch (InvocationTargetException e) {
-			getLog().error("",e);
-		} catch (RuntimeException e) {
-			getLog().error("",e);
-		}
-		// Close
-		try {
-			input.close();
-		} catch (IOException e) {
-			// Ignore
-		}
-	}
+//	public static void close(Closeable input) {
+//		if (input == null)
+//			return;
+//		// Flush (annoying that this is not part of Closeable)
+//		try {
+//			Method m = input.getClass().getMethod("flush");
+//			m.invoke(input);
+//		} catch (NoSuchMethodException e) {
+//			getLog().debug("No Such Method Exception: flush");
+//		} catch (IllegalAccessException e) {
+//			getLog().error("",e);
+//		} catch (InvocationTargetException e) {
+//			getLog().error("",e);
+//		} catch (RuntimeException e) {
+//			getLog().error("",e);
+//		}
+//		// Close
+//		try {
+//			input.close();
+//		} catch (IOException e) {
+//			// Ignore
+//		}
+//	}
 	/**
 	 * Use a buffered reader (preferably UTF-8) to extract the contents of the
 	 * given stream. A convenience method for {@link #toString(Reader)}.
 	 * @throws IOException 
 	 */
 	
-	public static String toString(InputStream inputStream) throws IOException {
-		InputStreamReader reader;
-		try {
-			reader = new InputStreamReader(inputStream, UTF8);
-		} catch (UnsupportedEncodingException e) {
-			reader = new InputStreamReader(inputStream);
-		}
-		
-		return toString(reader);
-	}
+//	public static String toString(InputStream inputStream) throws IOException {
+//		InputStreamReader reader;
+//		try {
+//			reader = new InputStreamReader(inputStream, UTF8);
+//		} catch (UnsupportedEncodingException e) {
+//			reader = new InputStreamReader(inputStream);
+//		}
+//		
+//		return toString(reader);
+//	}
 
 	
 
@@ -140,36 +136,55 @@ public class WebUtil {
 	 * @return The contents of this reader.
 	 * @throws IOException 
 	 */
-	public static String toString(Reader reader) throws IOException {
-		try {
-			// Buffer if not already buffered
-			reader = reader instanceof BufferedReader ? (BufferedReader) reader
-					: new BufferedReader(reader);
-			StringBuilder output = new StringBuilder();
+//	public static String toString(Reader reader) throws IOException {
+//		try {
+//			// Buffer if not already buffered
+//			reader = reader instanceof BufferedReader ? (BufferedReader) reader
+//					: new BufferedReader(reader);
+//			StringBuilder output = new StringBuilder();
+//	
+//			while (true) {
+//				int c = reader.read();
+//				if (c == -1)
+//					break;
+//				output.append((char) c);
+//			}
+//			return output.toString();
+//		} catch (IOException ex) {
+//			ex.printStackTrace();
+//			throw ex;
+//		} finally {
+//			close(reader);
+//		}
+//	}
+
+
+//	public static String encode(Object x) {
+//		try {
+//			return URLEncoder.encode(String.valueOf(x),"UTF-8");
+//		} catch (UnsupportedEncodingException e) {
+//			return(String.valueOf(x));
+//		}
+//	}
 	
-			while (true) {
-				int c = reader.read();
-				if (c == -1)
-					break;
-				output.append((char) c);
-			}
-			return output.toString();
-		} catch (IOException ex) {
-			ex.printStackTrace();
-			throw ex;
-		} finally {
-			close(reader);
-		}
-	}
+	/**
+	 * This is a class used for testing that will accept any https certificates
+	 * @author djp3
+	 *
+	 */
+	private static class DefaultTrustManager implements X509TrustManager {
 
+        @Override
+        public void checkClientTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {}
 
-	public static String encode(Object x) {
-		try {
-			return URLEncoder.encode(String.valueOf(x),"UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			return(String.valueOf(x));
-		}
-	}
+        @Override
+        public void checkServerTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {}
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return null;
+        }
+    }
 	
 	
 
@@ -240,7 +255,17 @@ public class WebUtil {
 			if (Globals.getGlobals().isTesting()) {
 				// Allow the remote domain to not match the remote certificate
 				// when testing or trust the certificate
+
+		        SSLContext ctx = SSLContext.getInstance("TLSv1.2");
+		        ctx.init(new KeyManager[0],
+		        		new TrustManager[] {
+		        				new DefaultTrustManager()
+		        		}, new SecureRandom());
+		        SSLContext.setDefault(ctx);
+
+		        /*
 				SSLContextBuilder builder = new SSLContextBuilder();
+				builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
 			    builder.loadTrustMaterial(null, new TrustStrategy() {
 					@Override
 					public boolean isTrusted(
@@ -249,8 +274,9 @@ public class WebUtil {
 							throws java.security.cert.CertificateException {
 						return true;
 					}
-			    });
-			    SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory( builder.build(),SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+			    });*/
+			    //SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory( builder.build(),SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+			    SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory( ctx,SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
 				httpclient = HttpClients
 						.custom()
 						.setHostnameVerifier( SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER)
@@ -296,13 +322,12 @@ public class WebUtil {
 					} else {
 
 						if (receiveHeaderFields != null) {
-							BasicHeaderElementIterator hit = new BasicHeaderElementIterator(
-									response.headerIterator());
+							BasicHeaderElementIterator hit = new BasicHeaderElementIterator(response.headerIterator());
 							while (hit.hasNext()) {
 								HeaderElement elem = hit.nextElement();
 								List<String> list = null;
-								if (receiveHeaderFields.containsKey(elem .getName())) {
-									list = receiveHeaderFields.get(elem .getName());
+								if (receiveHeaderFields.containsKey(elem.getName())) {
+									list = receiveHeaderFields.get(elem.getName());
 									list.add(elem.getValue());
 								} else {
 									list = new ArrayList<String>();
@@ -323,13 +348,8 @@ public class WebUtil {
 			return httpclient.execute(httpget, rh);
 
 		} catch (KeyManagementException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (KeyStoreException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
 			if (httpclient != null) {
@@ -400,17 +420,30 @@ public class WebUtil {
 
 			if (Globals.getGlobals().isTesting()) {
 				// Allow the remote domain to not match the remote certificate
-				// when testing
+				// when testing or trust the certificate
+
+		        SSLContext ctx = SSLContext.getInstance("TLSv1.2");
+		        ctx.init(new KeyManager[0],
+		        		new TrustManager[] {
+		        				new DefaultTrustManager()
+		        		}, new SecureRandom());
+		        SSLContext.setDefault(ctx);
+		        
+		        SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory( ctx,SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
 				httpclient = HttpClients
 						.custom()
-						.setHostnameVerifier(
-								SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER)
+						.setHostnameVerifier( SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER)
+						.setSSLSocketFactory(sslsf)
 						.setDefaultRequestConfig(defaultRequestConfig)
-						.setDefaultCredentialsProvider(credsProvider).build();
+						.setDefaultCredentialsProvider(credsProvider)
+						.setRetryHandler(new DefaultHttpRequestRetryHandler(0,false))
+						.build();
 			} else {
 				httpclient = HttpClients.custom()
 						.setDefaultRequestConfig(defaultRequestConfig)
-						.setDefaultCredentialsProvider(credsProvider).build();
+						.setDefaultCredentialsProvider(credsProvider)
+						.setRetryHandler(new DefaultHttpRequestRetryHandler(0,false))
+						.build();
 			}
 
 			HttpHead httphead = new HttpHead(uri);
@@ -436,10 +469,10 @@ public class WebUtil {
 								statusLine.getReasonPhrase());
 					}
 
-					if (entity == null) {
-						throw new ClientProtocolException(
-								"Response contains no content");
-					} else {
+//					if (entity == null) {
+//						throw new ClientProtocolException(
+//								"Response contains no content");
+//					} else {
 
 						if (receiveHeaderFields != null) {
 							BasicHeaderElementIterator hit = new BasicHeaderElementIterator(
@@ -461,18 +494,28 @@ public class WebUtil {
 						ContentType contentType = ContentType
 								.getOrDefault(entity);
 						Charset charset = contentType.getCharset();
-						return EntityUtils.toString(entity, charset);
-					}
+						if(entity == null) {
+							return null;
+						}
+						else {
+							return EntityUtils.toString(entity, charset);
+						}
+//					}
 				}
 			};
 
 			return httpclient.execute(httphead, rh);
 
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		} catch (KeyManagementException e) {
+			e.printStackTrace();
 		} finally {
 			if (httpclient != null) {
 				httpclient.close();
 			}
 		}
+		return null;
 	}
 	
 			
