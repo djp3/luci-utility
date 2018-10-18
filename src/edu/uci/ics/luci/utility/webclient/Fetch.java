@@ -69,12 +69,6 @@ public class Fetch {
 	private TreeSet<Pair<Long,URI>> urlPool = null;
 	
 
-	/*
-	private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-        in.defaultReadObject();
-        resetLog();
-        urlPoolLock = new Object();
-    }*/
 	
 	public Fetch(){
 		urlPool = new TreeSet<Pair<Long,URI>>();
@@ -187,7 +181,7 @@ public class Fetch {
 			servers.addAll(urlPool);
 		}
 		
-		while(servers.size()>0){
+		while(servers.size() > 0){
 			URI s = servers.pollFirst().getSecond();
 			try{
 				URIBuilder copy = new URIBuilder(uriBuilder.build());
@@ -196,7 +190,9 @@ public class Fetch {
 				copy.setPort(s.getPort());
 				responseString = WebUtil.fetchWebPage(copy,sendHeaderFields,receiveHeaderFields,
 						username_password,timeOutMilliSecs);
-				break;
+				if(responseString != null) {
+					break;
+				}
 			}
 			catch(IOException e){
 				incrementFailCount(s);

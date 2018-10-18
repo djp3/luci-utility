@@ -22,6 +22,7 @@
 package edu.uci.ics.luci.utility.webclient;
 
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -31,13 +32,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.TreeSet;
 
-import net.minidev.json.JSONArray;
-import net.minidev.json.JSONObject;
-import net.minidev.json.JSONValue;
-
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.conn.HttpHostConnectException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -47,6 +46,9 @@ import org.junit.jupiter.api.Test;
 import edu.uci.ics.luci.utility.Globals;
 import edu.uci.ics.luci.utility.GlobalsForTesting;
 import edu.uci.ics.luci.utility.datastructure.Pair;
+import net.minidev.json.JSONArray;
+import net.minidev.json.JSONObject;
+import net.minidev.json.JSONValue;
 
 public class FetchTest {
 
@@ -81,6 +83,16 @@ public class FetchTest {
 		Globals.setGlobals(null);
 	}
 	
+	
+	@Test
+	public void testLog() {
+		assertNotNull(Fetch.getLog());
+		assertNotNull(Fetch.getLog());
+		Fetch.resetLog();
+		assertNotNull(Fetch.getLog());
+		assertNotNull(Fetch.getLog());
+	}
+	
 
 
 	@Test
@@ -107,18 +119,37 @@ public class FetchTest {
 	@Test
 	public void testSorting() throws URISyntaxException{
 		
+		Random r = new Random();
 		Fetch f = new Fetch();
-		Map<URI,Long> urlMap = new HashMap<URI,Long>();
 		
-		
-		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1776).build(),0L);
-		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1777).build(),1L);
-		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1778).build(),1L);
-		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1779).build(),2L);
-		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1780).build(),3L);
-		f.resetUrlPool(urlMap);
-		
+		/* Run 100 experiments */
 		for(int i = 0 ;i < 100; i++){
+			Map<URI,Long> urlMap = new HashMap<URI,Long>();
+		
+			/* Add 0 - 3 elements that should be in the middle */
+			int max = r.nextInt(4);
+			for(int j=0;j < max; j++) {
+				int port = 1777+ r.nextInt(3);
+				urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(port).build(),1L);
+			}
+			/* Add the lowest element */
+			urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1776).build(),0L);
+			/* Add some middle elements */
+			urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1777).build(),1L);
+			urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1778).build(),1L);
+			urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1779).build(),2L);
+			/* Add the highest element */
+			urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1780).build(),3L);
+			/* Add 0 - 3 elements that should be in the middle */
+			max = r.nextInt(4);
+			for(int j=0;j < max; j++) {
+				int port = 1777+ r.nextInt(3);
+				urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(port).build(),2L);
+			}
+			
+			/* Pass in the new pool*/
+			f.resetUrlPool(urlMap);
+		
 			TreeSet<Pair<Long, URI>> servers = new TreeSet<Pair<Long,URI>>(f.getUrlPoolCopy());
 			assertTrue(servers.pollFirst().getSecond().toString().contains("1776"));
 			assertTrue(servers.pollLast().getSecond().toString().contains("1780"));
@@ -127,7 +158,7 @@ public class FetchTest {
 	
 	
 	@Test
-	public void testFetch(){
+	public void testFetchHTTPSGithub(){
 		try {
 			Fetch f = new Fetch(new URIBuilder().setScheme("https").setHost("raw.github.com").build());
 		
@@ -145,7 +176,33 @@ public class FetchTest {
 	}
 	
 	@Test
-	public void testFetchJSONWithBadServers() throws URISyntaxException{
+	public void testFetchJSONWithAllBadServers() throws URISyntaxException{
+		Map<URI,Long> urlMap = new HashMap<URI,Long>();
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1776).build(),0L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1776).build(),0L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1777).build(),1L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1778).build(),1L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1779).build(),2L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1780).build(),3L);
+		
+		Fetch f = new Fetch(urlMap);
+		try {
+			f.fetchJSONObject(new URIBuilder().setPath("/djp3/p2p4java/production/bootstrapMasterList.json"),null,null,null,30000);
+			fail("This should fail because all servers are bad");
+		} catch (HttpHostConnectException e) {
+			//This is ultimately what is expected
+		} catch (MalformedURLException e) {
+			fail(""+e);
+		} catch (IOException e) {
+			fail(""+e);
+		} catch (URISyntaxException e) {
+			fail(""+e);
+		}
+	}
+	
+	
+	@Test
+	public void testFetchJSONWithMostlyBadServers() throws URISyntaxException{
 		Map<URI,Long> urlMap = new HashMap<URI,Long>();
 		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1776).build(),0L);
 		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1776).build(),0L);
@@ -172,7 +229,7 @@ public class FetchTest {
 	
 	
 	@Test
-	public void testFetchWebpageWithBadServers() throws URISyntaxException{
+	public void testFetchWebpageWithAllBadServers() throws URISyntaxException{
 		Map<URI,Long> urlMap = new HashMap<URI,Long>();
 		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1776).build(),0L);
 		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1776).build(),0L);
@@ -180,12 +237,40 @@ public class FetchTest {
 		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1778).build(),1L);
 		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1779).build(),2L);
 		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1780).build(),3L);
-		urlMap.put(new URIBuilder().setScheme("https").setHost("github.com").build(),4L);
+		
+		Fetch f = new Fetch(urlMap);
+		try {
+			f.fetchWebPage(new URIBuilder().setPath("/djp3/p2p4java/blob/production/bootstrapMasterList.json"),null,null,null,30000);
+			fail("This should have ultimately failed");
+		} catch (HttpHostConnectException e) {
+			//This is what is expected to happen when all servers are tried
+		} catch (MalformedURLException e) {
+			fail(""+e);
+		} catch (IOException e) {
+			fail(""+e);
+		} catch (URISyntaxException e) {
+			fail(""+e);
+		}
+	}
+	
+	
+	@Test
+	public void testFetchWebpageWithMostlyBadServers() throws URISyntaxException{
+		Map<URI,Long> urlMap = new HashMap<URI,Long>();
+		urlMap.put(new URIBuilder().setScheme("https").setHost("github.com").build(),2L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1776).build(),1L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1776).build(),1L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1777).build(),2L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1778).build(),2L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1779).build(),3L);
+		urlMap.put(new URIBuilder().setScheme("http").setHost("localhost").setPort(1780).build(),4L);
 		
 		Fetch f = new Fetch(urlMap);
 		try {
 			String s = f.fetchWebPage(new URIBuilder().setPath("/djp3/p2p4java/blob/production/bootstrapMasterList.json"),null,null,null,30000);
 			assertTrue(s.contains("tcp"));
+		} catch (HttpHostConnectException e) {
+			fail(""+e);
 		} catch (MalformedURLException e) {
 			fail(""+e);
 		} catch (IOException e) {
