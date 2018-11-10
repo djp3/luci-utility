@@ -1,3 +1,3 @@
-[submodule "submodules/certificate-transparency-java.git"]
-	path = submodules/certificate-transparency-java.git
-	url = git@github.com:djp3/certificate-transparency-java.git
+[submodule "submodules"]
+	path = submodules
+	url = git@github.com:djp3/SSL-revocation-manager.git
