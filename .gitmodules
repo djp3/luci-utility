@@ -1,3 +1,6 @@
 [submodule "submodules"]
 	path = submodules
 	url = git@github.com:djp3/SSL-revocation-manager.git
+[submodule "submodules/SSL-revocation-manager"]
+	path = submodules/SSL-revocation-manager
+	url = git@github.com:djp3/SSL-revocation-manager.git
