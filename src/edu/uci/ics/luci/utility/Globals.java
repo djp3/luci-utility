@@ -21,6 +21,7 @@
 
 package edu.uci.ics.luci.utility;
 
+import java.security.Security;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -29,6 +30,7 @@ import java.util.TimeZone;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bouncycastle.jsse.provider.BouncyCastleJsseProvider;
 
 import edu.uci.ics.luci.utility.webserver.event.api.login.DatastoreSQLite;
 
@@ -67,7 +69,7 @@ public abstract class Globals implements Quittable{
 	static final long ONE_MINUTE = 60 * ONE_SECOND;
 	
 	/* Source of randomness for the whole app */
-	private static final Random random = new Random(System.currentTimeMillis() - 93845);
+	protected static final Random random = new Random(System.currentTimeMillis() - 93845);
 	
 	/* Singleton variable */
 	private static Globals singleton = null;
@@ -142,6 +144,14 @@ public abstract class Globals implements Quittable{
 		String c = java.nio.charset.Charset.defaultCharset().name();
 		if (!c.equals("UTF-8")) {
 			throw new IllegalArgumentException("The character set is not UTF-8:" + c);
+		}
+		
+		Security.addProvider(new BouncyCastleJsseProvider());		
+		
+
+		String s = Security.getProperty("jdk.certpath.disabledAlgorithms");
+		if(	s == null || !s.contains("SHA1") ) {
+				throw new IllegalArgumentException("Security is not strong enough, add \"jdk.certpath.disabledAlgorithms=SHA1\" to VM Security parameters " + s);
 		}
 	}
 	
